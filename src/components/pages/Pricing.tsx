@@ -60,7 +60,7 @@ export function Pricing() {
             </ul>
             <button
               onClick={() => navigate('/courses')}
-              className="w-full bg-gray-200 text-black px-6 py-3 rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-bold"
+              className="w-full bg-gray-200 text-black px-6 py-3 rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-bold mt-4"
             >
               Get Started
             </button>
@@ -68,12 +68,12 @@ export function Pricing() {
 
           {/* Subject Plan */}
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-8 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col">
-            <div className="bg-blue-500 p-3 rounded-lg border-2 border-black w-fit mb-4">
-              <Zap className="h-6 w-6 text-white" />
+            <div className="bg-black p-3 rounded-lg border-2 border-black w-fit mb-4">
+              <Zap className="h-6 w-6 text-yellow-400" />
             </div>
             <h2 className="text-3xl font-black mb-2">Per Subject</h2>
             <div className="mb-6">
-              <span className="text-5xl font-black">₹99</span>
+              <span className="text-5xl font-black">$5</span>
               <span className="text-muted-foreground font-medium">/subject</span>
             </div>
             <ul className="space-y-3 mb-8 flex-grow">
@@ -100,16 +100,16 @@ export function Pricing() {
             </ul>
             <button
               onClick={() => navigate('/courses')}
-              className="w-full bg-blue-500 text-white px-6 py-3 rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-bold"
+              className="w-full bg-black text-white px-6 py-3 rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:bg-gray-800 transition-all font-bold mt-4"
             >
               Choose Subjects
             </button>
           </div>
 
           {/* Full Year Plan - Recommended */}
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-8 border-4 border-purple-600 shadow-[8px_8px_0px_0px_rgba(147,51,234,1)] flex flex-col relative">
-            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-              <div className="bg-purple-600 text-white px-4 py-1 rounded-full border-2 border-black font-black text-sm">
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-8 border-4 border-purple-600 shadow-[8px_8px_0px_0px_rgba(147,51,234,1)] flex flex-col relative pt-12">
+            <div className="absolute top-2 left-1/2 transform -translate-x-1/2">
+              <div className="bg-purple-600 text-white px-4 py-1 rounded-full border-2 border-black font-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 RECOMMENDED
               </div>
             </div>
@@ -118,7 +118,7 @@ export function Pricing() {
             </div>
             <h2 className="text-3xl font-black mb-2">Full Year</h2>
             <div className="mb-6">
-              <span className="text-5xl font-black">₹499</span>
+              <span className="text-5xl font-black">$30</span>
               <span className="text-muted-foreground font-medium">/year</span>
             </div>
             <ul className="space-y-3 mb-8 flex-grow">
@@ -149,7 +149,7 @@ export function Pricing() {
             </ul>
             <button
               onClick={() => navigate('/courses')}
-              className="w-full bg-purple-600 text-white px-6 py-3 rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-bold"
+              className="w-full bg-purple-600 text-white px-6 py-3 rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:bg-purple-700 transition-all font-bold mt-4"
             >
               Get Full Access
             </button>
