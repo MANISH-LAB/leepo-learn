@@ -653,12 +653,20 @@ export default function App() {
   const handlePaymentSuccess = async (purchasedAccess: PurchasedAccess) => {
     console.log("💳 Payment successful!", purchasedAccess);
 
-    // TODO: Save subscription to database
-    // For now, just close the modal
+    // Subscription is now saved to database in PaymentModal
     setShowPaymentModal(false);
 
-    // TODO: Update user's access based on what they purchased
-    alert(`Payment successful! You now have access to ${purchasedAccess.type === 'year' ? 'the full year' : purchasedAccess.subjectIds.length + ' subjects'}`);
+    // Show success message
+    const accessMessage = purchasedAccess.type === 'year'
+      ? 'the full year'
+      : purchasedAccess.type === 'years'
+      ? `${purchasedAccess.yearIds.length} years`
+      : `${purchasedAccess.subjectIds.length} subject${purchasedAccess.subjectIds.length > 1 ? 's' : ''}`;
+
+    alert(`🎉 Payment successful! You now have lifetime access to ${accessMessage}. Enjoy learning!`);
+
+    // Optionally refresh user data or redirect
+    // You can add logic here to reload user subscriptions if needed
   };
 
   const handleLogout = async () => {

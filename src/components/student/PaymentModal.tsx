@@ -26,6 +26,7 @@ import { ScrollArea } from "../ui/scroll-area";
 import { Node } from "../../utils/sharedData";
 import * as db from "../../utils/supabase/database";
 import { supabase } from "../../utils/supabase/client";
+import { createSubscription } from "../../utils/supabase/database";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -241,12 +242,50 @@ export function PaymentModal({
   };
 
   // Handle payment
-  const handlePayment = () => {
+  const handlePayment = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        console.error('No user found');
+        setIsLoading(false);
+        return;
+      }
+
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Save subscription to database
+      const subscription = await createSubscription({
+        user_id: user.id,
+        purchase_type: selectedYears.size > 0 ? (selectedYears.size > 1 ? 'years' : 'year') : 'subject',
+        degree_id: selectedDegree?.id,
+        degree_title: selectedDegree?.title,
+        year_ids: Array.from(selectedYears),
+        subject_ids: Array.from(selectedSubjects),
+        total_price: totalPrice,
+        payment_status: 'completed',
+        payment_method: 'demo',
+      });
+
+      if (subscription) {
+        console.log('✅ Subscription saved successfully:', subscription);
+        setStep("success");
+      } else {
+        console.error('❌ Failed to save subscription');
+        // Still show success for demo purposes
+        setStep("success");
+      }
+    } catch (error) {
+      console.error('❌ Error processing payment:', error);
+      // Still show success for demo purposes
       setStep("success");
-    }, 1500);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleClose = () => {

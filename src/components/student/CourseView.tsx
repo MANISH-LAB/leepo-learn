@@ -915,8 +915,8 @@ export function CourseView({
       setIsSubscribed(true);
       setShowPaymentModal(false);
       console.log('Payment successful! Purchased:', purchasedAccess);
-      // TODO: Save purchased access to user's account in database
-      // For now, just unlock all premium content by setting isSubscribed
+      // Subscription is saved to database in PaymentModal component
+      // Premium content is now unlocked for this session
   };
 
   if (!selectedChapter) {

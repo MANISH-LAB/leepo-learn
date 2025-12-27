@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9333ea;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="url(#grad)"/>
+
+  <!-- Graduation cap -->
+  <g fill="#ffffff">
+    <!-- Cap top -->
+    <polygon points="50,25 20,38 50,51 80,38" />
+    <!-- Cap square -->
+    <rect x="45" y="38" width="10" height="20" />
+    <!-- Tassel -->
+    <circle cx="80" cy="38" r="3" />
+    <line x1="80" y1="38" x2="85" y2="45" stroke="#fbbf24" stroke-width="2" />
+    <circle cx="85" cy="47" r="2" fill="#fbbf24" />
+  </g>
+
+  <!-- Sparkle -->
+  <circle cx="30" cy="60" r="2" fill="#fbbf24" opacity="0.8"/>
+  <circle cx="70" cy="65" r="2" fill="#fbbf24" opacity="0.8"/>
+</svg>

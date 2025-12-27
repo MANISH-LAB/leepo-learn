@@ -2449,3 +2449,170 @@ export async function getContinueLearning(
     return null;
   }
 }
+
+// ========================================
+// SUBSCRIPTIONS - PURCHASE TRACKING
+// ========================================
+
+export interface Subscription {
+  id: string;
+  user_id: string;
+  purchase_type: 'subject' | 'year' | 'years';
+  degree_id: string | null;
+  degree_title: string | null;
+  year_ids: string[];
+  subject_ids: string[];
+  total_price: number;
+  currency: string;
+  payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
+  payment_id: string | null;
+  payment_method: string | null;
+  starts_at: string;
+  expires_at: string | null;
+  is_lifetime: boolean;
+  is_active: boolean;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Create a new subscription record
+ */
+export async function createSubscription(subscription: {
+  user_id: string;
+  purchase_type: 'subject' | 'year' | 'years';
+  degree_id?: string;
+  degree_title?: string;
+  year_ids?: string[];
+  subject_ids?: string[];
+  total_price: number;
+  payment_status?: 'pending' | 'completed';
+  payment_id?: string;
+  payment_method?: string;
+}): Promise<Subscription | null> {
+  try {
+    console.log('💳 Creating subscription:', subscription);
+
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .insert({
+        user_id: subscription.user_id,
+        purchase_type: subscription.purchase_type,
+        degree_id: subscription.degree_id || null,
+        degree_title: subscription.degree_title || null,
+        year_ids: subscription.year_ids || [],
+        subject_ids: subscription.subject_ids || [],
+        total_price: subscription.total_price,
+        currency: 'USD',
+        payment_status: subscription.payment_status || 'completed',
+        payment_id: subscription.payment_id || null,
+        payment_method: subscription.payment_method || 'demo',
+        is_lifetime: true,
+        is_active: true,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Error creating subscription:', error);
+      return null;
+    }
+
+    console.log('✅ Subscription created:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ Error in createSubscription:', error);
+    return null;
+  }
+}
+
+/**
+ * Get all active subscriptions for a user
+ */
+export async function getUserActiveSubscriptions(userId: string): Promise<Subscription[]> {
+  try {
+    console.log('📋 Fetching active subscriptions for user:', userId);
+
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .eq('payment_status', 'completed')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('❌ Error fetching subscriptions:', error);
+      return [];
+    }
+
+    console.log('✅ Active subscriptions:', data?.length || 0);
+    return data || [];
+  } catch (error) {
+    console.error('❌ Error in getUserActiveSubscriptions:', error);
+    return [];
+  }
+}
+
+/**
+ * Check if user has access to a specific subject
+ */
+export async function userHasAccessToSubject(userId: string, subjectId: string): Promise<boolean> {
+  try {
+    const subscriptions = await getUserActiveSubscriptions(userId);
+
+    // Check if any subscription includes this subject
+    return subscriptions.some(sub =>
+      sub.subject_ids.includes(subjectId)
+    );
+  } catch (error) {
+    console.error('❌ Error checking subject access:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if user has access to all subjects in a year
+ */
+export async function userHasAccessToYear(userId: string, yearId: string): Promise<boolean> {
+  try {
+    const subscriptions = await getUserActiveSubscriptions(userId);
+
+    // Check if any subscription includes this year
+    return subscriptions.some(sub =>
+      sub.year_ids.includes(yearId)
+    );
+  } catch (error) {
+    console.error('❌ Error checking year access:', error);
+    return false;
+  }
+}
+
+/**
+ * Get all subjects/years a user has access to
+ */
+export async function getUserAccessibleContent(userId: string): Promise<{
+  subjects: string[];
+  years: string[];
+}> {
+  try {
+    const subscriptions = await getUserActiveSubscriptions(userId);
+
+    const subjects = new Set<string>();
+    const years = new Set<string>();
+
+    subscriptions.forEach(sub => {
+      sub.subject_ids.forEach(id => subjects.add(id));
+      sub.year_ids.forEach(id => years.add(id));
+    });
+
+    return {
+      subjects: Array.from(subjects),
+      years: Array.from(years),
+    };
+  } catch (error) {
+    console.error('❌ Error getting accessible content:', error);
+    return { subjects: [], years: [] };
+  }
+}
