@@ -726,7 +726,7 @@ export default function App() {
                     {location.pathname === "/admin" ? (
                     <Shield className="relative h-6 w-6 text-red-600 fill-red-100 z-10" />
                     ) : (
-                    <GraduationCap className="relative h-6 w-6 text-blue-600 fill-blue-100 z-10" />
+                    <img src="/favicon.png" alt="Leepo Learn" className="relative h-6 w-6 z-10 object-contain" />
                     )}
                 </div>
                 Leepo Learn
