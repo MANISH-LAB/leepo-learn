@@ -28,6 +28,7 @@ import * as db from "../../utils/supabase/database";
 import { supabase } from "../../utils/supabase/client";
 import { createSubscription } from "../../utils/supabase/database";
 import { useIsMobile } from "../ui/use-mobile";
+import { Price } from "../ui/Price";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -329,7 +330,11 @@ export function PaymentModal({
             </div>
             {(step === "selection" || step === "payment") && (
               <div className="text-right bg-yellow-400 text-black px-4 py-2 rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <div className="text-3xl font-black">${totalPrice}</div>
+                <Price
+                  amountUSD={totalPrice}
+                  className="text-3xl font-black"
+                  convertedClassName="text-xs"
+                />
                 <div className="text-xs font-bold">Total</div>
               </div>
             )}
@@ -399,14 +404,18 @@ export function PaymentModal({
     <li className="flex items-center gap-2">
       <span className="h-2 w-2 bg-black rounded-full shrink-0"></span>
       <span>
-        Full Year Access: <strong className="font-black">${YEAR_PRICE}</strong> per year
+        Full Year Access: <strong className="font-black inline-flex items-center gap-1">
+          <Price amountUSD={YEAR_PRICE} className="font-black" convertedClassName="text-xs" />
+        </strong> per year
       </span>
     </li>
 
     <li className="flex items-center gap-2">
       <span className="h-2 w-2 bg-black rounded-full shrink-0"></span>
       <span>
-        Individual Subject: <strong className="font-black">${SUBJECT_PRICE}</strong> per subject
+        Individual Subject: <strong className="font-black inline-flex items-center gap-1">
+          <Price amountUSD={SUBJECT_PRICE} className="font-black" convertedClassName="text-xs" />
+        </strong> per subject
       </span>
     </li>
 
@@ -462,9 +471,13 @@ export function PaymentModal({
                                     </div>
                                   </div>
                                   <div className="text-right">
-                                    <div className="text-2xl font-black text-green-600">${YEAR_PRICE}</div>
+                                    <Price
+                                      amountUSD={YEAR_PRICE}
+                                      className="text-2xl font-black text-green-600"
+                                      convertedClassName="text-xs text-slate-600"
+                                    />
                                     {year.subjects.length > 0 && (
-                                      <div className="text-xs text-slate-600 font-bold">
+                                      <div className="text-xs text-slate-600 font-bold mt-1">
                                         Save ${year.subjects.length * SUBJECT_PRICE - YEAR_PRICE}
                                       </div>
                                     )}
@@ -517,7 +530,11 @@ export function PaymentModal({
                                               )}
                                             </span>
                                           </div>
-                                          <span className="text-sm font-black text-blue-600">${SUBJECT_PRICE}</span>
+                                          <Price
+                                            amountUSD={SUBJECT_PRICE}
+                                            className="text-sm font-black text-blue-600"
+                                            convertedClassName="text-xs text-slate-600"
+                                          />
                                         </label>
                                       </div>
                                     );
@@ -583,7 +600,11 @@ export function PaymentModal({
                   <Separator className="my-4 bg-black h-0.5" />
                   <div className="flex justify-between items-center bg-yellow-300 p-4 rounded-lg border-2 border-black">
                     <span className="font-black text-xl">Total:</span>
-                    <span className="text-3xl font-black text-black">${totalPrice}</span>
+                    <Price
+                      amountUSD={totalPrice}
+                      className="text-3xl font-black text-black"
+                      convertedClassName="text-xs"
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -594,9 +615,14 @@ export function PaymentModal({
                     <CreditCard className="h-5 w-5" />
                     Payment Details
                   </h3>
-                  <div className="bg-purple-50 p-4 rounded-lg border-2 border-black">
+                  <div className="bg-purple-50 p-4 rounded-lg border-2 border-black mb-4">
                     <p className="text-slate-700 text-sm font-medium">
                       Payment integration coming soon. For now, this is a demo.
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 p-3 rounded-lg border-2 border-blue-200">
+                    <p className="text-slate-600 text-xs font-medium">
+                      💡 Prices shown in local currency are estimates. All payments are processed in USD at current exchange rates.
                     </p>
                   </div>
                 </CardContent>

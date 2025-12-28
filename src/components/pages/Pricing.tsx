@@ -1,6 +1,7 @@
 import { Check, Sparkles, Zap, Crown, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
+import { Price } from "../ui/Price";
 
 export function Pricing() {
   const navigate = useNavigate();
@@ -25,6 +26,9 @@ export function Pricing() {
           <h1 className="text-5xl font-black tracking-tight">Simple, Transparent Pricing</h1>
           <p className="text-xl text-muted-foreground font-medium">
             Choose the plan that works best for you
+          </p>
+          <p className="text-sm text-slate-500 font-medium bg-blue-50 border-2 border-blue-200 rounded-lg px-4 py-2 inline-block">
+            💡 Prices shown in local currency are estimates. All payments are processed in USD.
           </p>
         </div>
 
@@ -73,8 +77,12 @@ export function Pricing() {
             </div>
             <h2 className="text-3xl font-black mb-2">Per Subject</h2>
             <div className="mb-6">
-              <span className="text-5xl font-black">$5</span>
-              <span className="text-muted-foreground font-medium">/subject</span>
+              <Price
+                amountUSD={5}
+                className="text-5xl font-black"
+                convertedClassName="text-sm"
+              />
+              <span className="text-muted-foreground font-medium ml-1">/subject</span>
             </div>
             <ul className="space-y-3 mb-8 flex-grow">
               <li className="flex items-start gap-2">
@@ -118,8 +126,12 @@ export function Pricing() {
             </div>
             <h2 className="text-3xl font-black mb-2">Full Year</h2>
             <div className="mb-6">
-              <span className="text-5xl font-black">$30</span>
-              <span className="text-muted-foreground font-medium">/year</span>
+              <Price
+                amountUSD={30}
+                className="text-5xl font-black"
+                convertedClassName="text-sm"
+              />
+              <span className="text-muted-foreground font-medium ml-1">/year</span>
             </div>
             <ul className="space-y-3 mb-8 flex-grow">
               <li className="flex items-start gap-2">

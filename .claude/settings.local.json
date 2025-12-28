@@ -24,7 +24,9 @@
       "Bash(powershell -Command \"Stop-Process -Id 27776 -Force\")",
       "Bash(ls:*)",
       "Bash(find:*)",
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "Bash(powershell:*)",
+      "Bash(ffmpeg:*)"
     ],
     "deny": [],
     "ask": []

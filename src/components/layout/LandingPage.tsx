@@ -64,7 +64,7 @@ export function LandingPage({ onGetStarted, onLogin }: LandingPageProps) {
         <div className="md:container md:mx-auto relative z-10">
           <div className="max-w-4xl mx-auto text-center space-y-8">
             <div className="inline-block animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <span className="bg-yellow-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-wider transform -rotate-2 hover:rotate-0 transition-transform cursor-default">
+                <span className="bg-yellow-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] px-2 py-1 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold uppercase tracking-tight md:tracking-wider transform -rotate-2 hover:rotate-0 transition-transform cursor-default">
                     🚀 Leepo Learn - AI Learning Platform
                 </span>
             </div>
@@ -270,13 +270,17 @@ export function LandingPage({ onGetStarted, onLogin }: LandingPageProps) {
                            <div className="absolute bottom-20 left-16 h-4 w-4 bg-green-400 border-2 border-black rotate-45 animate-in fade-in zoom-in duration-700 delay-1000"></div>
                            <BrainCircuit className="absolute top-12 right-20 h-8 w-8 text-slate-300 opacity-50" />
 
-                           {/* Main Image */}
+                           {/* Main Video */}
                            <div className="relative z-10 w-full h-full flex items-center justify-center">
                                <div className="relative w-full h-full">
-                                  <img 
-                                      src="https://images.unsplash.com/photo-1507162728832-5b8fdb5f99fa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHwzZCUyMGlzb21ldHJpYyUyMHJvYm90JTIwbWFzY290JTIwZWR1Y2F0aW9uJTIwdGVjaG5vbG9neSUyMHdoaXRlJTIwYmFja2dyb3VuZHxlbnwxfHx8fDE3NjUxOTI1Nzd8MA&ixlib=rb-4.1.0&q=80&w=1080" 
-                                      alt="About Us Illustration" 
-                                      className="relative z-20 w-full h-full object-contain p-8 mix-blend-multiply" 
+                                  <video
+                                      src="/assets/about-us-video.mp4"
+                                      autoPlay
+                                      loop
+                                      muted
+                                      playsInline
+                                      alt="About Us Video"
+                                      className="relative z-20 w-full h-full object-contain p-8"
                                   />
                                   <motion.div 
                                       className="absolute top-12 right-12 z-30 text-yellow-500"
