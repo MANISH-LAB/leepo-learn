@@ -74,9 +74,11 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
     if (!selectedNode) return;
 
     setIsSaving(true);
+    console.log('💾 Starting save process for:', selectedNode.title, selectedNode.id);
 
     try {
       // Update node details
+      console.log('📝 Updating node details...');
       const nodeUpdated = await db.updateNode(selectedNode.id, {
         title: selectedNode.title,
         type: selectedNode.type,
@@ -87,9 +89,16 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
       if (!nodeUpdated) {
         throw new Error("Failed to update node");
       }
+      console.log('✅ Node details updated successfully');
 
       // If TOPIC, update content assets
       if (selectedNode.type === "TOPIC") {
+        console.log('🎬 Updating content assets...', {
+          videoUrl: selectedNode.videoUrl,
+          audioUrl: selectedNode.audioUrl,
+          pdfUrl: selectedNode.pdfUrl
+        });
+
         const assetsUpdated = await db.upsertContentAssets(selectedNode.id, {
           videoUrl: selectedNode.videoUrl,
           videoUrlHindi: selectedNode.videoUrlHindi,
@@ -104,10 +113,12 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
         if (!assetsUpdated) {
           throw new Error("Failed to update content assets");
         }
+        console.log('✅ Content assets updated successfully');
       }
 
       // If CHAPTER, update assessment
       if (selectedNode.type === "CHAPTER" && selectedNode.assessment) {
+        console.log('📊 Updating assessment...');
         const assessmentUpdated = await db.upsertAssessment(
           selectedNode.id,
           selectedNode.assessment.questions
@@ -116,15 +127,22 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
         if (!assessmentUpdated) {
           throw new Error("Failed to update assessment");
         }
+        console.log('✅ Assessment updated successfully');
       }
 
       // Update local state
       setTree(updateNode(tree, selectedNode.id, selectedNode));
 
-      toast.success(`Saved changes for "${selectedNode.title}"`);
-    } catch (error) {
-      console.error("Error saving node:", error);
-      toast.error("Failed to save changes");
+      console.log('🎉 All changes saved successfully!');
+      toast.success(`✅ Saved! Changes to "${selectedNode.title}" have been updated in the database.`, {
+        duration: 3000,
+      });
+    } catch (error: any) {
+      console.error("❌ Error saving node:", error);
+      const errorMessage = error?.message || 'Unknown error occurred';
+      toast.error(`Failed to save: ${errorMessage}`, {
+        duration: 5000,
+      });
     } finally {
       setIsSaving(false);
     }

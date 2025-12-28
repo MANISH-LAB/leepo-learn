@@ -526,6 +526,11 @@ export async function fetchTopicsForChapter(chapterId: string): Promise<Node[]> 
         node.duration = asset.duration;
         node.isPremium = asset.is_premium;
         node.interactiveContent = asset.interactive_content;
+
+        // Debug log for video URLs
+        if (asset.video_url) {
+          console.log(`📹 Loaded video URL for topic "${t.title}":`, asset.video_url);
+        }
       }
 
       return node;
@@ -682,6 +687,11 @@ function buildEnrichedTree(nodes: any[], assets: any[], assessments: any[]): Nod
       newNode.duration = asset.duration;
       newNode.isPremium = asset.is_premium;
       newNode.interactiveContent = asset.interactive_content;
+
+      // Debug log for video URLs
+      if (asset.video_url) {
+        console.log(`📹 Loaded video URL for topic "${node.title}":`, asset.video_url);
+      }
     }
 
     // Add assessment if available
@@ -923,7 +933,9 @@ export async function upsertContentAssets(nodeId: string, content: {
   interactiveContent?: string;
 }): Promise<boolean> {
   try {
-    const { error } = await supabase
+    console.log('🔄 Upserting content assets for node:', nodeId, content);
+
+    const { data, error } = await supabase
       .from('content_assets')
       .upsert({
         node_id: nodeId,
@@ -937,13 +949,24 @@ export async function upsertContentAssets(nodeId: string, content: {
         interactive_content: content.interactiveContent,
       }, {
         onConflict: 'node_id'
-      });
+      })
+      .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Supabase error:', error);
+      throw error;
+    }
+
+    console.log('✅ Content assets upserted successfully:', data);
     return true;
-  } catch (error) {
-    console.error('Error upserting content assets:', error);
-    return false;
+  } catch (error: any) {
+    console.error('❌ Error upserting content assets:', {
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+      code: error?.code
+    });
+    throw error; // Re-throw to show user the actual error
   }
 }
 

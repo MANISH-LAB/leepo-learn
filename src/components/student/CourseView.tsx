@@ -74,6 +74,15 @@ import { Separator } from "../ui/separator";
 import { PaymentModal, PurchasedAccess } from "./PaymentModal";
 import { XPParticles } from "./XPParticles";
 
+// Helper function to detect if URL is an iframe embed URL
+const isIframeUrl = (url: string | undefined): boolean => {
+  if (!url) return false;
+  return url.includes('iframe') ||
+         url.includes('embed') ||
+         url.includes('player') ||
+         url.includes('mediadelivery.net/play');
+};
+
 // Mock Data Structure
 const courseData = {
   id: "sub-1",
@@ -712,15 +721,28 @@ export function CourseView({
   // Reset video state when topic changes
   useEffect(() => {
     if (activeTopic) {
+      console.log('🎯 Active topic changed:', {
+        title: activeTopic.title,
+        id: activeTopic.id,
+        videoUrl: activeTopic.videoUrl,
+        isIframe: isIframeUrl(activeTopic.videoUrl),
+        audioUrl: activeTopic.audioUrl,
+        pdfUrl: activeTopic.pdfUrl
+      });
+
       setIsPlaying(false);
       setIsInteractiveMode(false); // Reset interactive mode
       setPlaybackRate("1");
-      
+
       // Determine initial media mode
       if (activeTopic.videoUrl) {
+        console.log('📺 Setting media mode to video. URL:', activeTopic.videoUrl);
         setMediaMode('video');
       } else if (activeTopic.audioUrl) {
+        console.log('🎵 Setting media mode to audio');
         setMediaMode('audio');
+      } else {
+        console.log('⚠️ No video or audio URL found for this topic');
       }
 
       if (videoRef.current) {
@@ -1291,26 +1313,36 @@ export function CourseView({
                  {mediaMode === 'video' ? (
                    activeTopic?.videoUrl ? (
                     <div ref={playerContainerRef} className="relative w-full h-full group bg-black">
-                      <video 
-                        ref={videoRef}
-                        src={language === 'hi' && activeTopic.videoUrlHindi ? activeTopic.videoUrlHindi : activeTopic.videoUrl}
-                        className="w-full h-full object-contain"
-                        crossOrigin="anonymous"
-                        controls={!isVideoCompleted}
-                        playsInline
-                        onEnded={() => {
-                            setIsPlaying(false);
-                            setIsVideoCompleted(true);
-                            if (activeTopic && !completedTopicIds.has(activeTopic.id)) {
-                                handleMarkComplete(activeTopic.id);
-                            }
-                        }}
-                        onPlay={() => {
-                            setIsPlaying(true);
-                            setIsVideoCompleted(false);
-                        }}
-                        onPause={() => setIsPlaying(false)}
-                      />
+                      {isIframeUrl(language === 'hi' && activeTopic.videoUrlHindi ? activeTopic.videoUrlHindi : activeTopic.videoUrl) ? (
+                        <iframe
+                          src={language === 'hi' && activeTopic.videoUrlHindi ? activeTopic.videoUrlHindi : activeTopic.videoUrl}
+                          className="w-full h-full"
+                          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                          allowFullScreen
+                          style={{ border: 'none' }}
+                        />
+                      ) : (
+                        <video
+                          ref={videoRef}
+                          src={language === 'hi' && activeTopic.videoUrlHindi ? activeTopic.videoUrlHindi : activeTopic.videoUrl}
+                          className="w-full h-full object-contain"
+                          crossOrigin="anonymous"
+                          controls={!isVideoCompleted}
+                          playsInline
+                          onEnded={() => {
+                              setIsPlaying(false);
+                              setIsVideoCompleted(true);
+                              if (activeTopic && !completedTopicIds.has(activeTopic.id)) {
+                                  handleMarkComplete(activeTopic.id);
+                              }
+                          }}
+                          onPlay={() => {
+                              setIsPlaying(true);
+                              setIsVideoCompleted(false);
+                          }}
+                          onPause={() => setIsPlaying(false)}
+                        />
+                      )}
 
                       {/* Next Topic Overlay */}
                       {isVideoCompleted && (
@@ -1843,17 +1875,27 @@ export function CourseView({
                    {mediaMode === 'video' ? (
                        activeTopic.videoUrl ? (
                          <>
-                           <video 
-                             ref={videoRef}
-                             src={activeTopic.videoUrl}
-                             className="w-full h-full object-cover"
-                             crossOrigin="anonymous"
-                             controls
-                             playsInline
-                             onEnded={() => setIsPlaying(false)}
-                             onPlay={() => setIsPlaying(true)}
-                             onPause={() => setIsPlaying(false)}
-                           />
+                           {isIframeUrl(activeTopic.videoUrl) ? (
+                             <iframe
+                               src={activeTopic.videoUrl}
+                               className="w-full h-full"
+                               allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                               allowFullScreen
+                               style={{ border: 'none' }}
+                             />
+                           ) : (
+                             <video
+                               ref={videoRef}
+                               src={activeTopic.videoUrl}
+                               className="w-full h-full object-cover"
+                               crossOrigin="anonymous"
+                               controls
+                               playsInline
+                               onEnded={() => setIsPlaying(false)}
+                               onPlay={() => setIsPlaying(true)}
+                               onPause={() => setIsPlaying(false)}
+                             />
+                           )}
                            {/* Floating Theatre Mode Button removed to prevent overlap */}
                          </>
                        ) : (
