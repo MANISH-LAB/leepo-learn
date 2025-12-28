@@ -1,10 +1,6 @@
 import { supabase } from './client';
 import { Node, NodeType } from '../sharedData';
 
-// Test Supabase connection on import
-console.log('🔌 Supabase client initialized:', supabase ? 'YES' : 'NO');
-console.log('🔌 Supabase URL:', supabase.supabaseUrl);
-
 // ========================================
 // HIERARCHY NODES - CRUD OPERATIONS
 // ========================================
@@ -14,11 +10,7 @@ console.log('🔌 Supabase URL:', supabase.supabaseUrl);
  */
 export async function fetchCourseHierarchy(): Promise<Node[]> {
   try {
-    console.log('📚 Fetching full course hierarchy with direct fetch...');
-    const startTime = Date.now();
-
     const url = `${supabase.supabaseUrl}/rest/v1/hierarchy_nodes?select=*&order=order_index.asc`;
-    console.log('🔗 Fetching from:', url);
 
     const response = await fetch(url, {
       headers: {
@@ -27,21 +19,14 @@ export async function fetchCourseHierarchy(): Promise<Node[]> {
       },
     });
 
-    console.log('📡 Response status:', response.status);
-
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();
-    const loadTime = Date.now() - startTime;
-
-    console.log(`⏱️ Direct fetch completed in ${loadTime}ms`);
-    console.log(`📦 Received ${data?.length || 0} nodes`);
 
     // Build tree structure from flat list
     const tree = buildTree(data || []);
-    console.log(`🌳 Built tree with ${tree.length} root nodes`);
     return tree;
   } catch (error) {
     console.error('❌ Error fetching course hierarchy:', error);
@@ -526,11 +511,6 @@ export async function fetchTopicsForChapter(chapterId: string): Promise<Node[]> 
         node.duration = asset.duration;
         node.isPremium = asset.is_premium;
         node.interactiveContent = asset.interactive_content;
-
-        // Debug log for video URLs
-        if (asset.video_url) {
-          console.log(`📹 Loaded video URL for topic "${t.title}":`, asset.video_url);
-        }
       }
 
       return node;

@@ -25,7 +25,6 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
   // Load notifications when component mounts or userId changes
   useEffect(() => {
     if (userId) {
-      console.log('🔔 NotificationsPanel: Loading notifications for user:', userId);
       loadNotifications();
       loadUnreadCount();
     }
@@ -36,9 +35,7 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
 
     setIsLoading(true);
     try {
-      console.log('🔔 Fetching notifications...');
       const data = await db.getUserNotifications(userId);
-      console.log('🔔 Received notifications:', data);
       setNotifications(data);
     } catch (error) {
       console.error("❌ Error loading notifications:", error);
@@ -53,7 +50,6 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
 
     try {
       const count = await db.getUnreadNotificationCount(userId);
-      console.log('🔔 Unread count:', count);
       setUnreadCount(count);
     } catch (error) {
       console.error("❌ Error loading unread count:", error);
@@ -64,7 +60,6 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
     if (!userId) return;
 
     try {
-      console.log('🧪 Creating test notification...');
       const success = await db.createTestNotification(userId);
       if (success) {
         toast.success('Test notification created!');

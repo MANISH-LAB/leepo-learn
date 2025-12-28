@@ -44,26 +44,12 @@ export default function App() {
   // Function to refresh user stats from database (memoized to prevent unnecessary re-renders)
   const refreshUserStats = useCallback(async () => {
     if (!user?.id) {
-      console.log('⚠️ refreshUserStats called but no user.id');
       return;
     }
 
     try {
-      console.log('🔄 Refreshing user stats from database...');
-      console.log('📞 Calling getCurrentUserStats...');
       const stats = await getCurrentUserStats(user.id);
-      console.log('✅ Got stats from getCurrentUserStats:', stats);
-
-      console.log('📞 Calling getAverageScore...');
       const avgScore = await db.getAverageScore(user.id);
-      console.log('✅ Got avgScore:', avgScore);
-
-      console.log('📝 About to call setUserStats with:', {
-        streak: stats.streak,
-        xp: stats.xp,
-        maxStreak: stats.maxStreak,
-        avgScore
-      });
 
       setUserStats({
         streak: stats.streak,
@@ -71,25 +57,16 @@ export default function App() {
         maxStreak: stats.maxStreak,
         avgScore
       });
-
-      console.log('✅ Stats refreshed successfully!');
     } catch (error) {
       console.error('❌ Error refreshing user stats:', error);
-      console.error('❌ Error stack:', error.stack);
     }
   }, [user?.id]);
 
   // Auto-refresh user stats when user changes (login/logout)
   useEffect(() => {
-    console.log('🔍 useEffect triggered! User state:', user);
-    console.log('🔍 User ID:', user?.id);
-
     if (user?.id) {
-      console.log('👤 User detected, auto-refreshing stats...');
-      console.log('📊 Current userStats state:', userStats);
       refreshUserStats();
     } else {
-      console.log('👤 No user detected, resetting stats to 0...');
       setUserStats({ streak: 0, xp: 0, maxStreak: 0, avgScore: 0 });
     }
   }, [user?.id, refreshUserStats]);
@@ -102,10 +79,6 @@ export default function App() {
   useEffect(() => {
     async function loadCourseData() {
       try {
-        console.log("🚀 Starting to load course data...");
-
-        const startTime = Date.now();
-
         // Check if current route is admin or if user is admin
         const currentPath = window.location.pathname;
         const isAdminRoute = currentPath === '/admin';
@@ -114,33 +87,21 @@ export default function App() {
         let courseDataToLoad;
         if (isAdminRoute || isAdminUser) {
           // Load full hierarchy for admin
-          console.log("👨‍💼 Admin access detected - loading full hierarchy");
           courseDataToLoad = await db.fetchCourseHierarchy();
         } else {
           // Load only degrees for students (lazy load rest)
-          console.log("👨‍🎓 Student view - loading degrees only");
           courseDataToLoad = await db.fetchDegrees();
         }
 
-        const loadTime = Date.now() - startTime;
-
-        console.log(`⏱️ Course data loaded in ${loadTime}ms`);
-        console.log(`📦 Received data:`, courseDataToLoad);
-
         if (courseDataToLoad && courseDataToLoad.length > 0) {
-          console.log(`✅ Setting ${courseDataToLoad.length} root nodes to state`);
           setCourseData(courseDataToLoad);
-          console.log("✅ State updated successfully");
         } else {
-          console.warn("⚠️ No data returned - using fallback");
           setCourseData(initialTree);
         }
       } catch (error: any) {
         console.error("❌ CRITICAL ERROR loading course data:", error);
-        console.error("❌ Error stack:", error?.stack);
         setCourseData(initialTree);
       } finally {
-        console.log("🏁 Setting isLoadingData to false");
         setIsLoadingData(false);
       }
     }
@@ -151,28 +112,17 @@ export default function App() {
   // Check for existing auth session
   useEffect(() => {
     async function checkSession() {
-      console.log("🔐 Checking for auth session...");
-      console.log("🔐 Current URL:", window.location.href);
-      console.log("🔐 Hash fragment:", window.location.hash);
-
       // Check if there's an OAuth callback in the hash
       const hasAuthCallback = window.location.hash.includes('access_token');
-      console.log("🔐 Has OAuth callback?", hasAuthCallback);
 
       if (hasAuthCallback) {
-        console.log("⏳ OAuth callback detected! Manually processing tokens from hash...");
 
         // Extract tokens from hash fragment
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const access_token = hashParams.get('access_token');
         const refresh_token = hashParams.get('refresh_token');
 
-        console.log("🔑 Access token found:", access_token ? "YES" : "NO");
-        console.log("🔑 Refresh token found:", refresh_token ? "YES" : "NO");
-
         if (access_token && refresh_token) {
-          console.log("📝 Decoding JWT and setting user directly...");
-
           try {
             // Decode JWT to get user data (JWT is base64 encoded, payload is the middle part)
             const base64Url = access_token.split('.')[1];
@@ -182,21 +132,15 @@ export default function App() {
             }).join(''));
 
             const payload = JSON.parse(jsonPayload);
-            console.log("🔓 JWT payload:", payload);
 
             const userId = payload.sub;
             const email = payload.email;
             const userMetadata = payload.user_metadata || {};
 
-            console.log("👤 User ID:", userId);
-            console.log("📧 Email:", email);
-            console.log("📋 Metadata:", userMetadata);
-
             // Clean up hash immediately
             window.history.replaceState(null, '', window.location.pathname);
 
             // Manually save session to localStorage (Supabase setSession hangs)
-            console.log("💾 Manually saving session to localStorage...");
             const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
             const projectRef = supabaseUrl?.split('//')[1]?.split('.')[0];
             const storageKey = `sb-${projectRef}-auth-token`;
@@ -218,13 +162,11 @@ export default function App() {
 
             try {
               localStorage.setItem(storageKey, JSON.stringify(sessionData));
-              console.log("✅ Session saved to localStorage:", storageKey);
             } catch (e) {
               console.error("❌ Failed to save session to localStorage:", e);
             }
 
             // Fetch user profile and set user state using direct fetch (Supabase client is hanging)
-            console.log("🔍 Fetching user profile from database with direct fetch...");
             const headers = {
               'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
               'Authorization': `Bearer ${access_token}`,
@@ -237,11 +179,9 @@ export default function App() {
 
             const profiles = await profileResponse.json();
             const profile = profiles && profiles.length > 0 ? profiles[0] : null;
-            console.log("📝 Profile data:", profile);
 
             if (profile && profile.full_name && profile.college) {
               // Profile is complete
-              console.log("✅ Profile complete - setting user state");
               setUser({
                 id: profile.id,
                 name: profile.full_name,
@@ -267,7 +207,6 @@ export default function App() {
               navigate('/courses', { replace: true });
             } else if (profile) {
               // Profile incomplete
-              console.log("⚠️ Profile incomplete - needs onboarding");
               setUser({
                 id: profile.id,
                 email: profile.email || email,
@@ -279,7 +218,6 @@ export default function App() {
               setIsEnrollOpen(true);
             } else {
               // No profile - create new
-              console.log("⚠️ No profile - needs onboarding");
               setUser({
                 id: userId,
                 email: email,
@@ -297,8 +235,6 @@ export default function App() {
       }
 
       // Only check for existing session if there's NO OAuth callback
-      console.log("🔐 No OAuth callback, checking for existing session...");
-
       // Try to get session from Supabase with timeout, then fallback to localStorage
       let session = null;
       try {
@@ -309,7 +245,6 @@ export default function App() {
         );
 
         const { data, error } = await Promise.race([sessionPromise, timeoutPromise]) as any;
-        console.log("🔐 getSession() call completed");
 
         if (error) {
           console.error("❌ Error getting session:", error);
@@ -322,7 +257,6 @@ export default function App() {
 
       // Fallback: manually check localStorage if getSession didn't work
       if (!session) {
-        console.log("🔍 Trying to read session from localStorage manually...");
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const projectRef = supabaseUrl?.split('//')[1]?.split('.')[0];
         const storageKey = `sb-${projectRef}-auth-token`;
@@ -331,7 +265,6 @@ export default function App() {
           const storedData = localStorage.getItem(storageKey);
           if (storedData) {
             const parsedSession = JSON.parse(storedData);
-            console.log("✅ Found session in localStorage:", parsedSession);
 
             // Reconstruct session object
             session = {
@@ -345,22 +278,13 @@ export default function App() {
         }
       }
 
-      console.log("🔐 Session retrieved:", session ? "YES" : "NO");
       if (session?.user) {
-        console.log("🔐 User email:", session.user.email);
-      }
-
-      if (session?.user) {
-        console.log("✅ Session found:", session.user.email);
-
         // Clean up OAuth hash fragment from URL
         if (window.location.hash && window.location.hash.includes('access_token')) {
-          console.log("🧹 Cleaning up OAuth hash from URL");
           window.history.replaceState(null, '', window.location.pathname);
         }
 
         // Fetch user profile using direct fetch API
-        console.log("🔍 Fetching profile from database...");
         const headers = {
           'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${session.access_token}`,
@@ -374,11 +298,8 @@ export default function App() {
         const profiles = await profileResponse.json();
         const profile = profiles && profiles.length > 0 ? profiles[0] : null;
 
-        console.log("📝 Profile data:", profile);
-
         if (profile && profile.full_name && profile.college) {
           // Profile is complete
-          console.log("Profile complete - setting user");
           setUser({
             id: profile.id,
             name: profile.full_name,
@@ -393,14 +314,11 @@ export default function App() {
           setNeedsOnboarding(false);
 
           // Update daily activity and load user stats
-          console.log("Updating daily activity and loading stats...");
-          const activityResult = await updateDailyActivity(session.user.id);
-          console.log("Daily activity updated:", activityResult);
+          await updateDailyActivity(session.user.id);
 
           // Fetch updated stats
           const stats = await getCurrentUserStats(session.user.id);
           const avgScore = await db.getAverageScore(session.user.id);
-          console.log("User stats loaded:", stats);
           setUserStats({
             streak: stats.streak,
             xp: stats.xp,
@@ -409,7 +327,6 @@ export default function App() {
 
           // Load continue learning data
           const continueData = await getContinueLearningData(session.user.id);
-          console.log("Continue learning data loaded:", continueData);
           setContinueLearningData(continueData);
 
           // Don't navigate away if user is already on a valid page
@@ -419,7 +336,6 @@ export default function App() {
           }
         } else if (profile) {
           // Profile exists but incomplete - needs onboarding
-          console.log("Profile incomplete - showing onboarding");
           setUser({
             id: profile.id,
             email: profile.email || session.user.email,
@@ -431,7 +347,6 @@ export default function App() {
           setIsEnrollOpen(true);
         } else {
           // No profile found - create minimal user and show onboarding
-          console.log("No profile found - creating minimal user");
           setUser({
             id: session.user.id,
             email: session.user.email,
@@ -448,15 +363,9 @@ export default function App() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("🔔 Auth state change event:", event);
-      console.log("🔔 Session in event:", session ? session.user.email : "NO SESSION");
-
       if (event === 'SIGNED_IN' && session?.user) {
-        console.log("✅ Auth state change - SIGNED_IN:", session.user.email);
-
         // Clean up OAuth hash from URL immediately after sign in
         if (window.location.hash && window.location.hash.includes('access_token')) {
-          console.log("🧹 Cleaning up OAuth hash from URL");
           window.history.replaceState(null, '', window.location.pathname);
         }
 
@@ -467,11 +376,8 @@ export default function App() {
 
         const profile = profiles && profiles.length > 0 ? profiles[0] : null;
 
-        console.log("Profile on auth change:", profile);
-
         if (profile && profile.full_name && profile.college) {
           // Profile is complete
-          console.log("Profile complete on sign in");
           setUser({
             id: profile.id,
             name: profile.full_name,
@@ -486,14 +392,11 @@ export default function App() {
           setNeedsOnboarding(false);
 
           // Update daily activity and load user stats
-          console.log("Updating daily activity on sign in...");
-          const activityResult = await updateDailyActivity(session.user.id);
-          console.log("Daily activity updated:", activityResult);
+          await updateDailyActivity(session.user.id);
 
           // Fetch updated stats
           const stats = await getCurrentUserStats(session.user.id);
           const avgScore = await db.getAverageScore(session.user.id);
-          console.log("User stats loaded on sign in:", stats);
           setUserStats({
             streak: stats.streak,
             xp: stats.xp,
@@ -502,7 +405,6 @@ export default function App() {
 
           // Load continue learning data
           const continueData = await getContinueLearningData(session.user.id);
-          console.log("Continue learning data loaded on sign in:", continueData);
           setContinueLearningData(continueData);
 
           // Navigate to courses after sign in, but only if not already there
@@ -511,7 +413,6 @@ export default function App() {
           }
         } else if (profile) {
           // Profile exists but incomplete - needs onboarding
-          console.log("Profile incomplete on sign in - opening onboarding");
           setUser({
             id: profile.id,
             email: profile.email || session.user.email,
@@ -523,7 +424,6 @@ export default function App() {
           setIsEnrollOpen(true);
         } else {
           // No profile - create minimal user and show onboarding
-          console.log("No profile on sign in - creating minimal user");
           setUser({
             id: session.user.id,
             email: session.user.email,
@@ -585,16 +485,10 @@ export default function App() {
   const handleUpgrade = async () => {
     if (user) {
       // User is logged in, show payment modal
-      console.log("Opening payment modal for logged-in user");
-      console.log("📊 Course data:", courseData);
-      console.log("👤 User year:", user.year);
-
       // Find the user's degree based on their profile
       const degree = user.degree
         ? courseData.find(d => d.title === user.degree) || courseData[0]
         : courseData[0];
-
-      console.log("🎓 Selected degree:", degree);
 
       // Try to fetch and set year data if available
       if (degree) {
@@ -603,9 +497,7 @@ export default function App() {
           let years = degree.children || [];
 
           if (years.length === 0) {
-            console.log("📅 Fetching years for degree:", degree.id);
             years = await db.fetchYearsForDegree(degree.id);
-            console.log("✅ Fetched years:", years);
 
             // Update the degree in courseData with fetched years
             if (years.length > 0) {
@@ -614,19 +506,13 @@ export default function App() {
           }
 
           if (years.length > 0) {
-            console.log("📚 Available years:", years);
-
             // Find the matching year based on user's year
             const year = user.year
               ? years.find((y: Node) => y.title.includes(user.year)) || years[0]
               : years[0];
 
-            console.log("📅 Selected year for payment:", year);
             setSelectedYearForPayment(year);
-            console.log("✅ Set selectedYearForPayment");
           } else {
-            console.warn("⚠️ No years found for this degree - proceeding without year selection");
-            // Set a default year node or null
             setSelectedYearForPayment(null);
           }
         } catch (error) {
@@ -635,24 +521,19 @@ export default function App() {
           setSelectedYearForPayment(null);
         }
       } else {
-        console.warn("⚠️ No degree found - proceeding anyway");
         setSelectedYearForPayment(null);
       }
 
       // Always show payment modal regardless of year data
-      console.log("🔓 Opening payment modal");
       setShowPaymentModal(true);
     } else {
       // User not logged in, show enrollment wizard
-      console.log("User not logged in, opening enrollment");
       setEnrollmentStep(1);
       setIsEnrollOpen(true);
     }
   };
 
   const handlePaymentSuccess = async (purchasedAccess: PurchasedAccess) => {
-    console.log("💳 Payment successful!", purchasedAccess);
-
     // Subscription is now saved to database in PaymentModal
     setShowPaymentModal(false);
 
@@ -670,37 +551,28 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    console.log("🔓 Logout button clicked!");
     try {
       // Skip supabase.auth.signOut() as it hangs - manually clear everything instead
-      console.log("🧹 Manually clearing session and storage...");
-
       // Clear localStorage (where Supabase stores auth tokens)
       const supabaseAuthKey = `sb-${import.meta.env.VITE_SUPABASE_URL?.split('//')[1]?.split('.')[0]}-auth-token`;
-      console.log("🗑️ Clearing auth token from localStorage:", supabaseAuthKey);
       localStorage.removeItem(supabaseAuthKey);
 
       // Also try common Supabase storage keys
       Object.keys(localStorage).forEach(key => {
         if (key.includes('supabase') || key.includes('auth')) {
-          console.log("🗑️ Removing storage key:", key);
           localStorage.removeItem(key);
         }
       });
 
-      console.log("🧹 Clearing user state...");
       setUser(null);
       setNeedsOnboarding(false);
       setUserStats({ streak: 0, xp: 0, maxStreak: 0, avgScore: 0 });
       setContinueLearningData(null);
 
-      console.log("✅ Logout complete!");
-      console.log("🏠 Navigating to home...");
       navigate('/');
 
       // Force page reload to clear any cached state
       setTimeout(() => {
-        console.log("🔄 Reloading page to ensure clean state...");
         window.location.href = '/';
       }, 100);
     } catch (error) {

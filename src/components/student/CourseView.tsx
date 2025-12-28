@@ -278,14 +278,12 @@ export function CourseView({
             .map(p => p.node_id)
         );
         setCompletedTopicIds(completedIds);
-        console.log(`✅ Loaded ${completedIds.size} completed topics from database`);
 
         // Load chapter progress from cache
         if (subjectNode?.children && subjectNode.children.length > 0) {
           const chapterIds = subjectNode.children.map(c => c.id);
           const progressMap = await db.getChapterProgress(userId, chapterIds);
           setChapterProgressMap(progressMap);
-          console.log(`✅ Loaded progress for ${progressMap.size} chapters from cache`);
         }
       } catch (error) {
         console.error('❌ Error loading user progress:', error);
@@ -309,7 +307,6 @@ export function CourseView({
         // First, sync XP for any completed topics that don't have XP awarded yet
         const syncedXP = await db.syncXPForCompletedTopics(userId);
         if (syncedXP > 0) {
-          console.log(`🎉 Synced ${syncedXP} XP for previously completed topics`);
           // Refresh parent stats if XP was synced
           if (onXPUpdate) {
             onXPUpdate();
@@ -319,7 +316,6 @@ export function CourseView({
         // Then load current XP
         const stats = await db.getUserStats(userId);
         const currentXP = stats.total_xp || 0;
-        console.log(`💎 Loaded user XP from database: ${currentXP}`);
         setXP(currentXP);
       } catch (error) {
         console.error('❌ Error loading user XP:', error);
@@ -355,21 +351,16 @@ export function CourseView({
         const updatedMap = new Map(chapterProgressMap);
         updatedMap.set(parentChapter.id, newProgress);
         setChapterProgressMap(updatedMap);
-        console.log(`⚡ Instant update: Chapter ${parentChapter.id} → ${newProgress}%`);
       }
 
       // Award XP and save to database
       if (userId) {
         try {
-          console.log(`🎯 Awarding XP for topic completion: ${topicId}`);
-
           // This function will:
           // 1. Award 50 XP for topic completion
           // 2. Save XP to database (user_stats table)
           // 3. Mark topic as completed (user_progress table)
           const xpEarned = await awardXPForCompletion(userId, topicId, 'TOPIC');
-
-          console.log(`✅ Awarded ${xpEarned} XP and saved to database`);
 
           // Update local state to show XP animation
           setXP(prev => prev + xpEarned);
@@ -378,7 +369,6 @@ export function CourseView({
 
           // Refresh user stats in parent components (nav + dashboard)
           if (onXPUpdate) {
-            console.log('🔄 Triggering XP update in parent components...');
             onXPUpdate();
           }
 
@@ -388,7 +378,6 @@ export function CourseView({
               const chapterIds = subjectNode.children.map(c => c.id);
               const progressMap = await db.getChapterProgress(userId, chapterIds);
               setChapterProgressMap(progressMap);
-              console.log('🔄 Synced chapter progress from database cache');
             }
           }, 300); // 300ms delay for database trigger to complete
         } catch (error) {
@@ -644,7 +633,6 @@ export function CourseView({
          }, ...prev]);
 
          setNotes("");
-         console.log('✅ Note saved successfully');
        }
      } catch (error) {
        console.error('❌ Error saving note:', error);
@@ -660,7 +648,6 @@ export function CourseView({
       if (success) {
         // Remove from local state
         setSavedNotes(prev => prev.filter(n => n.id !== noteId));
-        console.log('✅ Note deleted successfully');
       }
     } catch (error) {
       console.error('❌ Error deleting note:', error);
@@ -721,28 +708,15 @@ export function CourseView({
   // Reset video state when topic changes
   useEffect(() => {
     if (activeTopic) {
-      console.log('🎯 Active topic changed:', {
-        title: activeTopic.title,
-        id: activeTopic.id,
-        videoUrl: activeTopic.videoUrl,
-        isIframe: isIframeUrl(activeTopic.videoUrl),
-        audioUrl: activeTopic.audioUrl,
-        pdfUrl: activeTopic.pdfUrl
-      });
-
       setIsPlaying(false);
       setIsInteractiveMode(false); // Reset interactive mode
       setPlaybackRate("1");
 
       // Determine initial media mode
       if (activeTopic.videoUrl) {
-        console.log('📺 Setting media mode to video. URL:', activeTopic.videoUrl);
         setMediaMode('video');
       } else if (activeTopic.audioUrl) {
-        console.log('🎵 Setting media mode to audio');
         setMediaMode('audio');
-      } else {
-        console.log('⚠️ No video or audio URL found for this topic');
       }
 
       if (videoRef.current) {
@@ -777,7 +751,6 @@ export function CourseView({
         }));
 
         setSavedNotes(formattedNotes);
-        console.log(`✅ Loaded ${formattedNotes.length} notes for topic: ${activeTopic.title}`);
       } catch (error) {
         console.error('❌ Error loading notes:', error);
         setSavedNotes([]);
@@ -926,12 +899,10 @@ export function CourseView({
   };
 
   const handleChapterClick = async (chapter: Node) => {
-    console.log('Chapter clicked:', chapter.title);
     setIsLoadingTopics(true);
     try {
       // Fetch topics for this chapter on-demand
       const topics = await db.fetchTopicsForChapter(chapter.id);
-      console.log('Fetched', topics.length, 'topics for chapter:', chapter.title);
 
       // Update chapter with loaded topics
       const updatedChapter = { ...chapter, children: topics };
@@ -960,7 +931,6 @@ export function CourseView({
 
           // Track learning position when topic is accessed
           if (userId && topic.id) {
-            console.log('📍 Tracking learning position for topic:', topic.id);
             await db.updateUserLearningPosition(userId, topic.id);
           }
       }
@@ -970,17 +940,12 @@ export function CourseView({
   useEffect(() => {
     if (!autoSelectChapterId || !autoSelectTopicId || !chapters.length) return;
 
-    console.log('🎯 Auto-selecting chapter and topic:', { autoSelectChapterId, autoSelectTopicId });
-
     // Find and select the chapter
     const chapter = chapters.find(c => c.id === autoSelectChapterId);
     if (chapter) {
-      console.log('✅ Found chapter, opening:', chapter.title);
       handleChapterClick(chapter);
 
       // Note: The topic will be auto-selected in the next useEffect after topics load
-    } else {
-      console.log('⚠️ Chapter not found for auto-selection:', autoSelectChapterId);
     }
   }, [autoSelectChapterId, autoSelectTopicId, chapters.length]);
 
@@ -988,12 +953,9 @@ export function CourseView({
   useEffect(() => {
     if (!autoSelectTopicId || !selectedChapter || !selectedChapter.children?.length) return;
 
-    console.log('🎯 Auto-selecting topic from loaded chapter:', autoSelectTopicId);
-
     // Find the specific topic
     const topic = selectedChapter.children.find(t => t.id === autoSelectTopicId);
     if (topic) {
-      console.log('✅ Found topic, opening:', topic.title);
       setActiveTopic(topic);
 
       // Track learning position
@@ -1005,15 +967,12 @@ export function CourseView({
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }, 100);
-    } else {
-      console.log('⚠️ Topic not found in chapter:', autoSelectTopicId);
     }
   }, [autoSelectTopicId, selectedChapter?.children?.length, userId]);
 
   const handlePaymentSuccess = (purchasedAccess: PurchasedAccess) => {
       setIsSubscribed(true);
       setShowPaymentModal(false);
-      console.log('Payment successful! Purchased:', purchasedAccess);
       // Subscription is saved to database in PaymentModal component
       // Premium content is now unlocked for this session
   };
@@ -1314,13 +1273,25 @@ export function CourseView({
                    activeTopic?.videoUrl ? (
                     <div ref={playerContainerRef} className="relative w-full h-full group bg-black">
                       {isIframeUrl(language === 'hi' && activeTopic.videoUrlHindi ? activeTopic.videoUrlHindi : activeTopic.videoUrl) ? (
-                        <iframe
-                          src={language === 'hi' && activeTopic.videoUrlHindi ? activeTopic.videoUrlHindi : activeTopic.videoUrl}
-                          className="w-full h-full"
-                          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                          allowFullScreen
-                          style={{ border: 'none' }}
-                        />
+                        <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
+                          <iframe
+                            src={language === 'hi' && activeTopic.videoUrlHindi ? activeTopic.videoUrlHindi : activeTopic.videoUrl}
+                            className="absolute"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                            allowFullScreen
+                            style={{
+                              border: 'none',
+                              position: 'absolute',
+                              top: '50%',
+                              left: '50%',
+                              transform: 'translate(-50%, -50%)',
+                              width: '234%',
+                              height: '200%',
+                              minWidth: '234%',
+                              minHeight: '200%'
+                            }}
+                          />
+                        </div>
                       ) : (
                         <video
                           ref={videoRef}
@@ -1876,13 +1847,25 @@ export function CourseView({
                        activeTopic.videoUrl ? (
                          <>
                            {isIframeUrl(activeTopic.videoUrl) ? (
-                             <iframe
-                               src={activeTopic.videoUrl}
-                               className="w-full h-full"
-                               allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                               allowFullScreen
-                               style={{ border: 'none' }}
-                             />
+                             <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
+                               <iframe
+                                 src={activeTopic.videoUrl}
+                                 className="absolute"
+                                 allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                                 allowFullScreen
+                                 style={{
+                                   border: 'none',
+                                   position: 'absolute',
+                                   top: '50%',
+                                   left: '50%',
+                                   transform: 'translate(-50%, -50%)',
+                                   width: '234%',
+                                   height: '200%',
+                                   minWidth: '234%',
+                                   minHeight: '200%'
+                                 }}
+                               />
+                             </div>
                            ) : (
                              <video
                                ref={videoRef}

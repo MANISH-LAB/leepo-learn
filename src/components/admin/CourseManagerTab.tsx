@@ -74,11 +74,9 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
     if (!selectedNode) return;
 
     setIsSaving(true);
-    console.log('💾 Starting save process for:', selectedNode.title, selectedNode.id);
 
     try {
       // Update node details
-      console.log('📝 Updating node details...');
       const nodeUpdated = await db.updateNode(selectedNode.id, {
         title: selectedNode.title,
         type: selectedNode.type,
@@ -89,16 +87,9 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
       if (!nodeUpdated) {
         throw new Error("Failed to update node");
       }
-      console.log('✅ Node details updated successfully');
 
       // If TOPIC, update content assets
       if (selectedNode.type === "TOPIC") {
-        console.log('🎬 Updating content assets...', {
-          videoUrl: selectedNode.videoUrl,
-          audioUrl: selectedNode.audioUrl,
-          pdfUrl: selectedNode.pdfUrl
-        });
-
         const assetsUpdated = await db.upsertContentAssets(selectedNode.id, {
           videoUrl: selectedNode.videoUrl,
           videoUrlHindi: selectedNode.videoUrlHindi,
@@ -113,12 +104,10 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
         if (!assetsUpdated) {
           throw new Error("Failed to update content assets");
         }
-        console.log('✅ Content assets updated successfully');
       }
 
       // If CHAPTER, update assessment
       if (selectedNode.type === "CHAPTER" && selectedNode.assessment) {
-        console.log('📊 Updating assessment...');
         const assessmentUpdated = await db.upsertAssessment(
           selectedNode.id,
           selectedNode.assessment.questions
@@ -127,13 +116,11 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
         if (!assessmentUpdated) {
           throw new Error("Failed to update assessment");
         }
-        console.log('✅ Assessment updated successfully');
       }
 
       // Update local state
       setTree(updateNode(tree, selectedNode.id, selectedNode));
 
-      console.log('🎉 All changes saved successfully!');
       toast.success(`✅ Saved! Changes to "${selectedNode.title}" have been updated in the database.`, {
         duration: 3000,
       });
@@ -149,12 +136,8 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
   };
 
   const handleAddChild = async (parentId: string, childType: NodeType) => {
-    console.log("handleAddChild called:", { parentId, childType });
-
     try {
       const title = `New ${childType.charAt(0) + childType.slice(1).toLowerCase()}`;
-
-      console.log("Creating node in database...", { parentId, childType, title });
 
       // Create in database
       const newNodeId = await db.createNode({
@@ -163,8 +146,6 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
         title,
         orderIndex: 0,
       });
-
-      console.log("Node created with ID:", newNodeId);
 
       if (!newNodeId) {
         throw new Error("Failed to create node");
@@ -182,7 +163,6 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
       const addRecursive = (nodes: Node[]): Node[] => {
         return nodes.map((node) => {
           if (node.id === parentId) {
-            console.log("Found parent node, adding child:", parentId);
             return {
               ...node,
               children: [...(node.children || []), newNode],
@@ -199,11 +179,9 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
       };
 
       const updatedTree = addRecursive(tree);
-      console.log("Updated tree:", updatedTree);
       setTree(updatedTree);
 
       // Automatically select the newly created node
-      console.log("Selecting new node:", newNode);
       setSelectedNode(newNode);
 
       toast.success(`Created new ${childType.toLowerCase()}`);
@@ -246,8 +224,6 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
   };
 
   const handleReorder = async (draggedId: string, targetId: string, position: 'before' | 'after') => {
-    console.log('Reorder:', { draggedId, targetId, position });
-
     try {
       // Find the parent of both nodes to ensure they're siblings
       const findNodeAndParent = (nodes: Node[], id: string, parent: Node | null = null): { node: Node; parent: Node | null } | null => {
