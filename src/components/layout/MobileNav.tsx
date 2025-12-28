@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet";
 import { Button } from "../ui/button";
-import { Menu, Zap, Gem, Shield, GraduationCap, LayoutDashboard, User, Settings, LogOut } from "lucide-react";
+import { Menu, Flame, Trophy, Gem, Shield, GraduationCap, LayoutDashboard, User, Settings, LogOut } from "lucide-react";
 import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
 
 interface MobileNavProps {
   user: any;
@@ -10,11 +12,30 @@ interface MobileNavProps {
   setCurrentView: (view: "student" | "admin") => void;
   onLogout: () => void;
   onUpgrade?: () => void;
+  streak?: number;
+  xp?: number;
 }
 
-export function MobileNav({ user, currentView, setCurrentView, onLogout, onUpgrade }: MobileNavProps) {
+export function MobileNav({ user, currentView, setCurrentView, onLogout, onUpgrade, streak = 0, xp = 0 }: MobileNavProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+
+  const handleUpgradeClick = () => {
+    setIsOpen(false); // Close the sheet first
+    if (onUpgrade) {
+      onUpgrade(); // Then call the upgrade handler
+    }
+  };
+
+  const formatXP = (num: number) => {
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
+    return num.toString();
+  };
+
   return (
-    <Sheet>
+    <>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="md:hidden">
           <Menu className="h-6 w-6" />
@@ -55,13 +76,13 @@ export function MobileNav({ user, currentView, setCurrentView, onLogout, onUpgra
           {/* Stats for Mobile */}
           {user && (
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-yellow-50/50 border border-yellow-100">
-                 <Zap className="h-5 w-5 text-yellow-500 fill-yellow-500 mb-1" />
-                 <span className="text-sm font-bold">3 Day Streak</span>
+              <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-orange-50/50 border border-orange-100">
+                 <Flame className="h-5 w-5 text-orange-500 fill-orange-500 mb-1" />
+                 <span className="text-sm font-bold">{streak} Day Streak</span>
               </div>
-              <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-blue-50/50 border border-blue-100">
-                 <Gem className="h-5 w-5 text-blue-500 fill-blue-500 mb-1" />
-                 <span className="text-sm font-bold">1,250 XP</span>
+              <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-purple-50/50 border border-purple-100">
+                 <Trophy className="h-5 w-5 text-purple-500 mb-1" />
+                 <span className="text-sm font-bold">{formatXP(xp)} XP</span>
               </div>
             </div>
           )}
@@ -74,7 +95,7 @@ export function MobileNav({ user, currentView, setCurrentView, onLogout, onUpgra
               <h4 className="text-sm font-medium text-muted-foreground mb-2 px-2">Switch View</h4>
               <Button
                   variant={currentView === "student" ? "secondary" : "ghost"}
-                  className="justify-start"
+                  className="justify-start cursor-pointer"
                   onClick={() => setCurrentView("student")}
               >
                   <LayoutDashboard className="mr-2 h-4 w-4" />
@@ -82,7 +103,7 @@ export function MobileNav({ user, currentView, setCurrentView, onLogout, onUpgra
               </Button>
               <Button
                   variant={currentView === "admin" ? "secondary" : "ghost"}
-                  className="justify-start"
+                  className="justify-start cursor-pointer"
                   onClick={() => setCurrentView("admin")}
               >
                   <Shield className="mr-2 h-4 w-4" />
@@ -91,19 +112,33 @@ export function MobileNav({ user, currentView, setCurrentView, onLogout, onUpgra
             </nav>
           )}
 
-          <Separator />
+          {user && user.email === 'manishkalyan141@gmail.com' && <Separator />}
 
           {/* Account Links */}
           {user && (
              <nav className="flex flex-col gap-2">
                 <h4 className="text-sm font-medium text-muted-foreground mb-2 px-2">Account</h4>
-                <Button variant="ghost" className="justify-start">
+                <Button
+                  variant="ghost"
+                  className="justify-start cursor-pointer"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setShowProfileModal(true);
+                  }}
+                >
                     <User className="mr-2 h-4 w-4" /> Profile
                 </Button>
-                <Button variant="ghost" className="justify-start">
+                <Button
+                  variant="ghost"
+                  className="justify-start cursor-pointer"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setShowSettingsModal(true);
+                  }}
+                >
                     <Settings className="mr-2 h-4 w-4" /> Settings
                 </Button>
-                <Button variant="ghost" className="justify-start text-red-600 hover:text-red-700 hover:bg-red-50" onClick={onLogout}>
+                <Button variant="ghost" className="justify-start cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50" onClick={onLogout}>
                     <LogOut className="mr-2 h-4 w-4" /> Log out
                 </Button>
              </nav>
@@ -120,8 +155,8 @@ export function MobileNav({ user, currentView, setCurrentView, onLogout, onUpgra
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={onUpgrade}
-                  className="w-full text-indigo-700 font-bold hover:bg-white"
+                  onClick={handleUpgradeClick}
+                  className="w-full text-indigo-700 font-bold hover:bg-white cursor-pointer active:scale-95 active:bg-indigo-100 transition-all duration-100 touch-manipulation"
                 >
                     Upgrade Now
                 </Button>
@@ -130,5 +165,36 @@ export function MobileNav({ user, currentView, setCurrentView, onLogout, onUpgra
         </div>
       </SheetContent>
     </Sheet>
+
+    {/* Profile Modal */}
+    <Dialog open={showProfileModal} onOpenChange={setShowProfileModal}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Profile</DialogTitle>
+          <DialogDescription>
+            View and manage your profile settings.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <p className="text-sm text-muted-foreground">Profile settings coming soon...</p>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    {/* Settings Modal */}
+    <Dialog open={showSettingsModal} onOpenChange={setShowSettingsModal}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Settings</DialogTitle>
+          <DialogDescription>
+            Manage your account settings and preferences.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <p className="text-sm text-muted-foreground">Settings coming soon...</p>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

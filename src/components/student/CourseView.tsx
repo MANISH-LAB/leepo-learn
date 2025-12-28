@@ -4,6 +4,7 @@ import { formatTimeAgo } from "../../utils/timeUtils";
 import { ContinueLearningData } from "../../utils/continueLearning";
 import { awardXPForCompletion } from "../../utils/streakAndXP";
 import * as db from "../../utils/supabase/database";
+import { useIsMobile } from "../ui/use-mobile";
 import {
   Card,
   CardContent,
@@ -31,13 +32,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { 
-  CheckCircle2, 
-  Lock, 
-  PlayCircle, 
+import {
+  CheckCircle2,
+  Lock,
+  PlayCircle,
   PauseCircle,
-  FileText, 
-  ArrowLeft, 
+  FileText,
+  ArrowLeft,
   CheckCircle,
   BookOpen,
   Image as ImageIcon,
@@ -66,6 +67,7 @@ import {
   ClipboardList,
   XCircle,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import { Textarea } from "../ui/textarea";
 import { Separator } from "../ui/separator";
@@ -233,11 +235,12 @@ export function CourseView({
   autoSelectChapterId?: string,
   autoSelectTopicId?: string
 }) {
+  const isMobile = useIsMobile();
   const chapters = subjectNode?.children || [];
   const [selectedChapter, setSelectedChapter] = useState<Node | null>(null);
   const [activeTopic, setActiveTopic] = useState<Node | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [isLoadingTopics, setIsLoadingTopics] = useState(false); 
+  const [isLoadingTopics, setIsLoadingTopics] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
 
@@ -422,6 +425,13 @@ export function CourseView({
   const [isTheatreMode, setIsTheatreMode] = useState(false);
   const [savedTimestamp, setSavedTimestamp] = useState(0);
 
+  // Auto-enter theatre mode on mobile when topic is selected
+  useEffect(() => {
+    if (isMobile && activeTopic && !isTheatreMode) {
+      setIsTheatreMode(true);
+    }
+  }, [activeTopic, isMobile]);
+
   // Auto-expand chapter and select topic from continue learning data
   useEffect(() => {
     if (continueLearning && chapters.length > 0) {
@@ -486,10 +496,8 @@ export function CourseView({
 
   // Notes State
   const [notes, setNotes] = useState("");
-  const [savedNotes, setSavedNotes] = useState<{id: string, timestamp: number, content: string, imageUrl?: string}[]>([
-     { id: "n-1", timestamp: 135, content: "Definition of Pointer: It holds the address of another variable.", imageUrl: undefined },
-     { id: "n-2", timestamp: 252, content: "Code Example for memory allocation.", imageUrl: undefined }
-  ]);
+  const [savedNotes, setSavedNotes] = useState<{id: string, timestamp: number, content: string, imageUrl?: string}[]>([]);
+  const [isLoadingNotes, setIsLoadingNotes] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   // Infographic State
@@ -602,16 +610,52 @@ export function CourseView({
      }
   };
 
-  const saveNote = () => {
-     if (!notes.trim()) return;
+  const saveNote = async () => {
+     if (!notes.trim() || !userId || !activeTopic) return;
+
      const media = mediaMode === 'video' ? videoRef.current : audioRef.current;
      const currentTime = media?.currentTime || 0;
-     setSavedNotes(prev => [{
-        id: Date.now().toString(),
-        timestamp: currentTime,
-        content: notes,
-     }, ...prev]);
-     setNotes("");
+
+     try {
+       // Save to database
+       const savedNote = await db.createUserNote(
+         userId,
+         activeTopic.id,
+         notes.trim(),
+         currentTime
+       );
+
+       if (savedNote) {
+         // Add to local state
+         setSavedNotes(prev => [{
+           id: savedNote.id,
+           timestamp: savedNote.media_timestamp,
+           content: savedNote.content,
+           imageUrl: savedNote.screenshot_url,
+         }, ...prev]);
+
+         setNotes("");
+         console.log('✅ Note saved successfully');
+       }
+     } catch (error) {
+       console.error('❌ Error saving note:', error);
+       // You could add a toast notification here
+     }
+  };
+
+  const deleteNoteHandler = async (noteId: string) => {
+    try {
+      // Delete from database
+      const success = await db.deleteUserNote(noteId);
+
+      if (success) {
+        // Remove from local state
+        setSavedNotes(prev => prev.filter(n => n.id !== noteId));
+        console.log('✅ Note deleted successfully');
+      }
+    } catch (error) {
+      console.error('❌ Error deleting note:', error);
+    }
   };
 
   const insertFormat = (format: string) => {
@@ -689,6 +733,39 @@ export function CourseView({
       }
     }
   }, [activeTopic]);
+
+  // Load notes from database when topic changes
+  useEffect(() => {
+    async function loadNotes() {
+      if (!activeTopic || !userId) {
+        setSavedNotes([]);
+        return;
+      }
+
+      setIsLoadingNotes(true);
+      try {
+        const dbNotes = await db.getUserNotesForTopic(userId, activeTopic.id);
+
+        // Transform database notes to match the UI format
+        const formattedNotes = dbNotes.map(note => ({
+          id: note.id,
+          timestamp: note.media_timestamp,
+          content: note.content,
+          imageUrl: note.screenshot_url,
+        }));
+
+        setSavedNotes(formattedNotes);
+        console.log(`✅ Loaded ${formattedNotes.length} notes for topic: ${activeTopic.title}`);
+      } catch (error) {
+        console.error('❌ Error loading notes:', error);
+        setSavedNotes([]);
+      } finally {
+        setIsLoadingNotes(false);
+      }
+    }
+
+    loadNotes();
+  }, [activeTopic, userId]);
 
   // Reload media when language changes
   useEffect(() => {
@@ -1150,8 +1227,12 @@ export function CourseView({
                   setSavedTimestamp(media.currentTime);
                 }
                 setIsTheatreMode(false);
+                // On mobile, also clear active topic to return to topic list
+                if (isMobile) {
+                  setActiveTopic(null);
+                }
               }}>
-                <ArrowLeft className="mr-2 h-4 w-4" /> Exit Theatre Mode
+                <ArrowLeft className="mr-2 h-4 w-4" /> {isMobile ? 'Back to Topics' : 'Exit Theatre Mode'}
               </Button>
               <Separator orientation="vertical" className="h-6" />
               <span className="font-semibold flex items-center gap-2"><BookOpen className="h-4 w-4 text-muted-foreground" /> {activeTopic?.title || selectedChapter.title}</span>
@@ -1164,15 +1245,19 @@ export function CourseView({
                     setSavedTimestamp(media.currentTime);
                   }
                   setIsTheatreMode(false);
+                  // On mobile, also clear active topic to return to topic list
+                  if (isMobile) {
+                    setActiveTopic(null);
+                  }
                 }}>
                   <Minimize2 className="mr-2 h-4 w-4" /> Standard View
                 </Button>
              </div>
           </div>
 
-          <div className="flex-1 flex overflow-hidden">
-            <div className="w-[70%] flex flex-col h-full overflow-y-auto bg-black/5 scrollbar-thin">
-               <div className="w-full bg-black sticky top-0 z-10 shadow-xl aspect-video">
+          <div className={`flex-1 flex ${isMobile ? 'flex-col' : ''} overflow-hidden`}>
+            <div className={`${isMobile ? 'w-full shrink-0' : 'w-[70%]'} flex flex-col ${isMobile ? '' : 'h-full overflow-y-auto bg-black/5'} scrollbar-thin`}>
+               <div className={`w-full bg-black ${isMobile ? '' : 'sticky top-0'} z-10 shadow-xl aspect-video shrink-0`}>
                  {/* Mode Toggles */}
                  {activeTopic?.videoUrl && activeTopic?.audioUrl && (
                        <div className="absolute top-4 right-4 z-30 flex gap-2">
@@ -1261,15 +1346,17 @@ export function CourseView({
                       )}
                       
                       {/* Top Left Actions */}
-                      <div className={`absolute top-4 left-4 z-30 flex gap-2 transition-opacity ${isVideoCompleted ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover:opacity-100'}`}>
+                      <div className={`absolute top-4 left-4 z-30 flex gap-2 transition-opacity ${isVideoCompleted ? 'opacity-0 pointer-events-none' : isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                           {activeTopic.interactiveContent && (
                             <Button variant="secondary" size="sm" onClick={() => setIsInteractiveMode(true)} className="backdrop-blur-md bg-black/40 text-blue-400 hover:bg-black/60 hover:text-blue-300 border-0 h-8">
-                              <Gamepad2 className="mr-2 h-4 w-4" /> Practice
+                              <Gamepad2 className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                              {!isMobile && ' Practice'}
                             </Button>
                           )}
 
                           <Button variant="secondary" size="sm" onClick={captureScreenshot} className="backdrop-blur-md bg-black/40 text-white hover:bg-black/60 border-0 h-8">
-                            <Camera className="mr-2 h-4 w-4" /> Snap
+                            <Camera className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                            {!isMobile && ' Snap'}
                           </Button>
                       </div>
                     </div>
@@ -1340,8 +1427,8 @@ export function CourseView({
                </div>
             </div>
 
-            <div className="w-[30%] h-full border-l bg-background shadow-2xl flex flex-col z-20 relative">
-                <div className="flex-1 flex flex-col p-4 space-y-4 h-full overflow-hidden">
+            <div className={`${isMobile ? 'w-full border-t flex-1 overflow-y-auto' : 'w-[30%] border-l h-full'} bg-background shadow-2xl flex flex-col z-20 relative`}>
+                <div className={`flex-1 flex flex-col p-4 space-y-4 ${isMobile ? '' : 'h-full overflow-hidden'}`}>
                   <div className="flex items-center justify-between shrink-0">
                       <h3 className="text-lg font-bold flex items-center gap-2"><BookOpen className="h-5 w-5" /> Smart Notes</h3>
                       <div className="flex gap-1">
@@ -1349,6 +1436,96 @@ export function CourseView({
                          <Button variant="ghost" size="icon" onClick={captureScreenshot}><Camera className="h-4 w-4" /></Button>
                       </div>
                   </div>
+
+                  {/* Action Buttons - Visible in theatre mode */}
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    <Dialog open={isPdfOpen} onOpenChange={setIsPdfOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <FileText className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                          {!isMobile && ' View PDF'}
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className={`${isMobile ? 'fixed inset-x-0 top-16 bottom-0 w-screen h-[calc(100vh-4rem)] max-w-none rounded-none m-0 translate-x-0 translate-y-0' : 'max-w-4xl h-[80vh]'} flex flex-col`}>
+                        <DialogHeader>
+                          <DialogTitle>{activeTopic.title} - PDF</DialogTitle>
+                        </DialogHeader>
+                        <div className="flex-1 bg-muted rounded-md overflow-hidden relative">
+                          <iframe
+                            src={activeTopic.pdfUrl}
+                            className="w-full h-full"
+                            title="PDF Viewer"
+                          />
+                        </div>
+                        <div className="flex justify-end pt-2">
+                          <Button variant="default" asChild>
+                            <a href={activeTopic.pdfUrl} download target="_blank" rel="noopener noreferrer">
+                              <Download className="mr-2 h-4 w-4" /> Download PDF
+                            </a>
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+
+                    <Dialog open={isInfographicOpen} onOpenChange={setIsInfographicOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <ImageIcon className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                          {!isMobile && ' Infographic'}
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className={`${isMobile ? 'fixed inset-x-0 top-16 bottom-0 w-screen h-[calc(100vh-4rem)] max-w-none rounded-none m-0 translate-x-0 translate-y-0' : 'max-w-4xl max-h-[90vh]'} flex flex-col`}>
+                        <DialogHeader>
+                          <DialogTitle>{activeTopic.title} - Infographic</DialogTitle>
+                        </DialogHeader>
+                        <div className="flex-1 overflow-auto bg-muted/20 rounded-md flex items-center justify-center p-4">
+                          <img
+                            ref={infographicRef}
+                            src={activeTopic.infographicUrl}
+                            alt="Infographic"
+                            className="max-w-full h-auto object-contain shadow-md rounded"
+                          />
+                        </div>
+                        <div className="flex justify-end pt-2 gap-2">
+                          <Button variant="outline" onClick={toggleInfographicFullscreen}>
+                            <ZoomIn className="mr-2 h-4 w-4" /> View Larger
+                          </Button>
+                          <Button variant="default" asChild>
+                            <a href={activeTopic.infographicUrl} download target="_blank" rel="noopener noreferrer">
+                              <Download className="mr-2 h-4 w-4" /> Download Image
+                            </a>
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+
+                    {activeTopic.interactiveContent && (
+                      <Button variant="default" size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => setIsInteractiveMode(true)}>
+                        <Gamepad2 className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                        {!isMobile && ' Practice'}
+                      </Button>
+                    )}
+
+                    <Button
+                      variant={completedTopicIds.has(activeTopic.id) ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleMarkComplete(activeTopic.id)}
+                      className={completedTopicIds.has(activeTopic.id) ? "bg-green-600 hover:bg-green-700" : ""}
+                    >
+                      {completedTopicIds.has(activeTopic.id) ? (
+                        <>
+                          <CheckCircle className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                          {!isMobile && ' Completed'}
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                          {!isMobile && ' Mark Complete'}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
                   <Separator />
                   <div className="relative shrink-0">
                        <Textarea 
@@ -1380,13 +1557,13 @@ export function CourseView({
                                          </Button>
                                          {dateDisplay && <span className="text-[10px] text-muted-foreground truncate">{dateDisplay}</span>}
                                      </div>
-                                     <Button 
-                                        variant="ghost" 
-                                        size="icon" 
+                                     <Button
+                                        variant="ghost"
+                                        size="icon"
                                         className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setSavedNotes(prev => prev.filter(n => n.id !== note.id));
+                                            deleteNoteHandler(note.id);
                                         }}
                                         title="Delete Note"
                                      >
@@ -1419,9 +1596,11 @@ export function CourseView({
         {/* Back Navigation */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="sm" onClick={() => setSelectedChapter(null)} className="-ml-2">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Course
-            </Button>
+            {!isMobile && (
+              <Button variant="ghost" size="sm" onClick={() => setSelectedChapter(null)} className="-ml-2">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back to Course
+              </Button>
+            )}
             {yearNode && (
               <PaymentModal
                 isOpen={showPaymentModal}
@@ -1523,12 +1702,13 @@ export function CourseView({
             </ScrollArea>
           </Card>
 
-          {/* Right: Content Player & Details */}
-          <div className="lg:col-span-2 flex flex-col h-full space-y-4 md:space-y-6 overflow-auto order-1 lg:order-2">
-            {activeTopic ? (
+          {/* Right: Content Player & Details (hidden on mobile - theatre mode shows instead) */}
+          {!isMobile && (
+            <div className="lg:col-span-2 flex flex-col h-full space-y-4 md:space-y-6 overflow-auto order-1 lg:order-2">
+              {activeTopic ? (
               <div className="space-y-4 md:space-y-6">
                 {/* Custom Video Player */}
-                <div 
+                <div
                   ref={playerContainerRef}
                   className="relative aspect-video bg-black rounded-xl overflow-hidden group shadow-lg"
                 >
@@ -1615,7 +1795,8 @@ export function CourseView({
                            </>
                         )}
                         
-                        <Button
+                        {!isMobile && (
+                          <Button
                              size="sm"
                              variant="secondary"
                              className="h-8 backdrop-blur-md bg-black/60 text-white hover:bg-black/80 border-0 shadow-sm"
@@ -1627,9 +1808,10 @@ export function CourseView({
                                }
                                setIsTheatreMode(true);
                              }}
-                        >
+                          >
                             <LayoutTemplate className="mr-2 h-3.5 w-3.5" /> Theatre Mode
-                        </Button>
+                          </Button>
+                        )}
                    </div>
 
                    {/* Left Actions */}
@@ -1716,7 +1898,8 @@ export function CourseView({
                      <Dialog open={isPdfOpen} onOpenChange={setIsPdfOpen}>
                        <DialogTrigger asChild>
                          <Button variant="outline">
-                           <FileText className="mr-2 h-4 w-4" /> View PDF
+                           <FileText className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                           {!isMobile && ' View PDF'}
                          </Button>
                        </DialogTrigger>
                        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
@@ -1743,7 +1926,8 @@ export function CourseView({
                      <Dialog open={isInfographicOpen} onOpenChange={setIsInfographicOpen}>
                        <DialogTrigger asChild>
                          <Button variant="outline">
-                           <ImageIcon className="mr-2 h-4 w-4" /> Infographic
+                           <ImageIcon className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                           {!isMobile && ' Infographic'}
                          </Button>
                        </DialogTrigger>
                        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
@@ -1885,11 +2069,13 @@ export function CourseView({
                      >
                        {completedTopicIds.has(activeTopic.id) ? (
                          <>
-                           <CheckCircle2 className="mr-2 h-4 w-4" /> Completed
+                           <CheckCircle2 className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                           {!isMobile && ' Completed'}
                          </>
                        ) : (
                          <>
-                           <CheckCircle className="mr-2 h-4 w-4" /> Mark Complete
+                           <CheckCircle className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                           {!isMobile && ' Mark Complete'}
                          </>
                        )}
                      </Button>
@@ -1899,10 +2085,13 @@ export function CourseView({
                    </Badge>
                 </div>
 
-                <Separator />
+                {/* Desktop: Pro Notes Panel (hidden on mobile) */}
+                {!isMobile && (
+                  <>
+                    <Separator />
 
-                {/* Pro Notes Panel */}
-                <Card className="flex flex-col min-h-[500px]">
+                    {/* Pro Notes Panel */}
+                    <Card className="flex flex-col min-h-[500px]">
                   <CardHeader className="pb-3 space-y-1">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base flex items-center gap-2">
@@ -1994,6 +2183,8 @@ export function CourseView({
                      </div>
                   </CardContent>
                 </Card>
+                  </>
+                )}
               </div>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4 text-muted-foreground">
@@ -2007,6 +2198,7 @@ export function CourseView({
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
     );

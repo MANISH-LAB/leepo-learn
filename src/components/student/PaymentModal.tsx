@@ -27,6 +27,7 @@ import { Node } from "../../utils/sharedData";
 import * as db from "../../utils/supabase/database";
 import { supabase } from "../../utils/supabase/client";
 import { createSubscription } from "../../utils/supabase/database";
+import { useIsMobile } from "../ui/use-mobile";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -64,6 +65,7 @@ export function PaymentModal({
   degreeTitle,
   yearNode,
 }: PaymentModalProps) {
+  const isMobile = useIsMobile();
   const [step, setStep] = useState<SelectionStep>("degree");
   const [isLoading, setIsLoading] = useState(false);
   const [loadingYears, setLoadingYears] = useState(false);
@@ -306,9 +308,9 @@ export function PaymentModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] p-0 overflow-hidden gap-0 border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-[#fffdf5]">
+      <DialogContent className={`${isMobile ? 'fixed inset-0 top-0 left-0 w-screen h-screen max-w-none rounded-none m-0 translate-x-0 translate-y-0' : 'sm:max-w-[900px] max-h-[90vh]'} p-0 overflow-hidden gap-0 border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-[#fffdf5]`}>
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 border-b-2 border-black">
+        <div className={`bg-gradient-to-r from-blue-600 to-purple-600 ${isMobile ? 'p-4' : 'p-6'} border-b-2 border-black`}>
           <div className="flex items-start justify-between">
             <div>
               <DialogTitle className="text-2xl font-black flex items-center gap-2 text-black">
@@ -335,7 +337,7 @@ export function PaymentModal({
         </div>
 
         {/* Content */}
-        <ScrollArea className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 280px)' }}>
+        <ScrollArea className={`${isMobile ? 'p-4' : 'p-6'} overflow-y-auto`} style={{ maxHeight: isMobile ? 'calc(100vh - 180px)' : 'calc(90vh - 280px)' }}>
           {/* STEP 1: Degree Selection */}
           {step === "degree" && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -639,13 +641,13 @@ export function PaymentModal({
         </ScrollArea>
 
         {/* Footer */}
-        <div className="border-t-2 border-black p-6 bg-[#fffdf5]">
-          <div className="flex justify-between items-center">
+        <div className={`border-t-2 border-black ${isMobile ? 'p-4' : 'p-6'} bg-[#fffdf5]`}>
+          <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between items-center'}`}>
             {step === "selection" && (
               <Button
                 variant="outline"
                 onClick={() => setStep("degree")}
-                className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] font-bold"
+                className={`border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] font-bold ${isMobile ? 'w-full h-12' : ''}`}
               >
                 Back to Degrees
               </Button>
@@ -654,18 +656,18 @@ export function PaymentModal({
               <Button
                 variant="outline"
                 onClick={() => setStep("selection")}
-                className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] font-bold"
+                className={`border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] font-bold ${isMobile ? 'w-full h-12' : ''}`}
               >
                 Back to Selection
               </Button>
             )}
 
-            <div className="flex gap-3 ml-auto">
+            <div className={`flex gap-3 ${isMobile ? 'w-full flex-col' : 'ml-auto'}`}>
               {step !== "success" && (
                 <Button
                   variant="outline"
                   onClick={handleClose}
-                  className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] font-bold"
+                  className={`border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] font-bold ${isMobile ? 'w-full h-12' : ''}`}
                 >
                   Cancel
                 </Button>
@@ -675,7 +677,7 @@ export function PaymentModal({
                 <Button
                   onClick={() => setStep("payment")}
                   disabled={!canProceed}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-black border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`bg-gradient-to-r from-blue-600 to-purple-600 text-black border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] font-bold disabled:opacity-50 disabled:cursor-not-allowed ${isMobile ? 'w-full h-12' : ''}`}
                 >
                   Continue to Payment
                   <ChevronRight className="ml-2 h-4 w-4" />
@@ -686,7 +688,7 @@ export function PaymentModal({
                 <Button
                   onClick={handlePayment}
                   disabled={isLoading}
-                  className="bg-green-600 text-black hover:bg-green-700 hover:text-white border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] font-bold disabled:opacity-50"
+                  className={`bg-green-600 text-black hover:bg-green-700 hover:text-white border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] font-bold disabled:opacity-50 ${isMobile ? 'w-full h-12' : ''}`}
                 >
                   {isLoading ? (
                     "Processing..."

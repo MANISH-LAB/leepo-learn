@@ -788,6 +788,8 @@ export default function App() {
                         setCurrentView={(view) => navigate(view === "admin" ? "/admin" : "/courses")}
                         onLogout={handleLogout}
                         onUpgrade={handleUpgrade}
+                        streak={userStats.streak}
+                        xp={userStats.xp}
                     />
                 </div>
             ) : (

@@ -28,6 +28,7 @@ import { Node } from "../../utils/sharedData";
 import { formatTimeAgo } from "../../utils/timeUtils";
 import { ContinueLearningData } from "../../utils/continueLearning";
 import * as db from "../../utils/supabase/database";
+import { useIsMobile } from "../ui/use-mobile";
 import {
   fetchDashboardStats,
   fetchResumePoint,
@@ -59,6 +60,7 @@ interface CourseBrowserProps {
 }
 
 export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEGREE", onViewDashboard, user, streak = 0, xp = 0, maxStreak = 0, avgScore = 0, continueLearning, onXPUpdate, autoNavigateTarget, onAutoNavigateComplete }: CourseBrowserProps) {
+  const isMobile = useIsMobile();
   const [level, setLevel] = useState<BrowsingLevel>(initialLevel);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDashboardExpanded, setIsDashboardExpanded] = useState(false);
@@ -418,49 +420,69 @@ export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEG
         {/* Navigation & Search */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
            <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-             {level === "DEGREE" ? (
-                <div className="px-3 py-1 bg-blue-100 rounded-md border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-bold text-sm whitespace-nowrap">
-                  Select Degree
-                </div>
+             {isMobile ? (
+               // Mobile: Show only current level
+               level === "DEGREE" ? (
+                 <div className="px-3 py-1 bg-blue-100 rounded-md border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-bold text-sm whitespace-nowrap">
+                   Select Degree
+                 </div>
+               ) : level === "YEAR" ? (
+                 <div className="px-3 py-1 rounded-md text-sm font-bold border-2 bg-blue-300 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black whitespace-nowrap">
+                   {selectedDegree?.title}
+                 </div>
+               ) : (
+                 <div className="px-3 py-1 rounded-md text-sm font-bold border-2 bg-yellow-300 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black whitespace-nowrap">
+                   {selectedYear?.title}
+                 </div>
+               )
              ) : (
-                <>
-                  <div 
-                    onClick={() => navigateToLevel("DEGREE")}
-                    className="px-3 py-1 rounded-md text-sm font-bold border-2 border-transparent text-slate-500 cursor-pointer hover:bg-blue-100 hover:border-black hover:text-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all whitespace-nowrap"
-                  >
-                    All Degrees
-                  </div>
-                  {selectedDegree && (
-                     <>
-                        <ChevronRight className="h-4 w-4 text-black shrink-0" />
-                        <div 
-                          onClick={() => navigateToLevel("YEAR")}
-                          className={`px-3 py-1 rounded-md text-sm font-bold border-2 transition-all whitespace-nowrap ${level === 'YEAR' ? 'bg-blue-300 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black cursor-default' : 'bg-transparent border-transparent text-slate-500 cursor-pointer hover:bg-blue-100 hover:border-black hover:text-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'}`}
-                        >
-                          {selectedDegree.title}
-                        </div>
-                     </>
-                  )}
-                </>
-             )}
-             
-             {selectedYear && (
-                <>
-                  <ChevronRight className="h-4 w-4 text-black shrink-0" />
-                  <div 
-                    onClick={() => navigateToLevel("SUBJECT")}
-                    className={`px-3 py-1 rounded-md text-sm font-bold border-2 transition-all whitespace-nowrap ${level === 'SUBJECT' ? 'bg-yellow-300 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black cursor-default' : 'bg-transparent border-transparent text-slate-500 cursor-pointer hover:bg-yellow-100 hover:border-black hover:text-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'}`}
-                  >
-                    {selectedYear.title}
-                  </div>
-                </>
+               // Desktop: Show full breadcrumb
+               <>
+                 {level === "DEGREE" ? (
+                   <div className="px-3 py-1 bg-blue-100 rounded-md border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-bold text-sm whitespace-nowrap">
+                     Select Degree
+                   </div>
+                 ) : (
+                   <>
+                     <div
+                       onClick={() => navigateToLevel("DEGREE")}
+                       className="px-3 py-1 rounded-md text-sm font-bold border-2 border-transparent text-slate-500 cursor-pointer hover:bg-blue-100 hover:border-black hover:text-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all whitespace-nowrap"
+                     >
+                       All Degrees
+                     </div>
+                     {selectedDegree && (
+                       <>
+                         <ChevronRight className="h-4 w-4 text-black shrink-0" />
+                         <div
+                           onClick={() => navigateToLevel("YEAR")}
+                           className={`px-3 py-1 rounded-md text-sm font-bold border-2 transition-all whitespace-nowrap ${level === 'YEAR' ? 'bg-blue-300 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black cursor-default' : 'bg-transparent border-transparent text-slate-500 cursor-pointer hover:bg-blue-100 hover:border-black hover:text-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'}`}
+                         >
+                           {selectedDegree.title}
+                         </div>
+                       </>
+                     )}
+                   </>
+                 )}
+
+                 {selectedYear && (
+                   <>
+                     <ChevronRight className="h-4 w-4 text-black shrink-0" />
+                     <div
+                       onClick={() => navigateToLevel("SUBJECT")}
+                       className={`px-3 py-1 rounded-md text-sm font-bold border-2 transition-all whitespace-nowrap ${level === 'SUBJECT' ? 'bg-yellow-300 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black cursor-default' : 'bg-transparent border-transparent text-slate-500 cursor-pointer hover:bg-yellow-100 hover:border-black hover:text-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'}`}
+                     >
+                       {selectedYear.title}
+                     </div>
+                   </>
+                 )}
+               </>
              )}
           </div>
 
-          {level !== "DEGREE" && (
-            <Button 
-                variant="outline" 
-                size="sm" 
+          {level !== "DEGREE" && !(isMobile && level === "CHAPTERS") && (
+            <Button
+                variant="outline"
+                size="sm"
                 onClick={handleBack}
                 className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] font-bold bg-white text-black hover:bg-slate-50 shrink-0"
             >

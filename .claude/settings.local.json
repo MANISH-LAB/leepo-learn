@@ -21,7 +21,10 @@
       "mcp__supabase__execute_sql",
       "Bash(wc:*)",
       "Bash(claude mcp add:*)",
-      "Bash(powershell -Command \"Stop-Process -Id 27776 -Force\")"
+      "Bash(powershell -Command \"Stop-Process -Id 27776 -Force\")",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(tail:*)"
     ],
     "deny": [],
     "ask": []

@@ -54,14 +54,14 @@ export function LandingPage({ onGetStarted, onLogin }: LandingPageProps) {
   return (
     <div className="min-h-screen bg-[#fffdf5] font-sans selection:bg-yellow-200">
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-20 pb-32">
+      <section className="relative overflow-hidden pt-20 pb-32 px-4 md:px-0">
         <div className="absolute top-20 right-0 -translate-y-1/2 translate-x-1/4 opacity-10 pointer-events-none">
              <svg width="600" height="600" viewBox="0 0 600 600" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="300" cy="300" r="300" fill="#FFD700" />
              </svg>
         </div>
-        
-        <div className="container mx-auto px-4 relative z-10">
+
+        <div className="md:container md:mx-auto relative z-10">
           <div className="max-w-4xl mx-auto text-center space-y-8">
             <div className="inline-block animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <span className="bg-yellow-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-wider transform -rotate-2 hover:rotate-0 transition-transform cursor-default">
@@ -117,8 +117,8 @@ export function LandingPage({ onGetStarted, onLogin }: LandingPageProps) {
       </section>
 
       {/* Features Grid */}
-      <section className="py-20 bg-white border-y-2 border-black">
-         <div className="container mx-auto px-4">
+      <section className="py-20 bg-white border-y-2 border-black px-4 md:px-0">
+         <div className="md:container md:mx-auto">
              <div className="text-center mb-16 space-y-4">
                 <h2 className="text-4xl md:text-5xl font-black">Everything You Need to Excel</h2>
                 <p className="text-xl text-slate-600 max-w-2xl mx-auto font-medium">
@@ -192,15 +192,15 @@ export function LandingPage({ onGetStarted, onLogin }: LandingPageProps) {
       </section>
 
       {/* Social Proof / Testimonials */}
-      <section className="py-24 bg-yellow-50 overflow-hidden">
-          <div className="container mx-auto px-4 mb-12 text-center">
+      <section className="py-24 bg-yellow-50 overflow-hidden px-4 md:px-0">
+          <div className="md:container md:mx-auto mb-12 text-center">
               <h2 className="text-4xl font-black mb-4">Loved by Students Everywhere</h2>
               <div className="h-2 w-24 bg-black mx-auto rounded-full"></div>
           </div>
-          
+
           <div className="relative">
               {/* Marquee effect would go here, but for now a static grid */}
-              <div className="container mx-auto px-4 grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="md:container md:mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div className="bg-white p-6 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                       <div className="flex gap-1 mb-4">
                           {[1,2,3,4,5].map(i => <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />)}
@@ -247,8 +247,8 @@ export function LandingPage({ onGetStarted, onLogin }: LandingPageProps) {
       </section>
 
       {/* About Us & Team */}
-      <section className="py-24 bg-white border-t-2 border-black">
-          <div className="container mx-auto px-4">
+      <section className="py-24 bg-white border-t-2 border-black px-4 md:px-0">
+          <div className="md:container md:mx-auto">
               {/* About Us */}
               <div className="flex flex-col lg:flex-row items-center gap-16 mb-24">
                  <div className="lg:w-1/2 space-y-8">
@@ -337,7 +337,7 @@ export function LandingPage({ onGetStarted, onLogin }: LandingPageProps) {
 
       {/* Final CTA */}
       <section className="py-24 bg-blue-600 text-white border-t-2 border-black">
-          <div className="container mx-auto px-4 text-center space-y-8">
+          <div className="md:container md:mx-auto px-4 text-center space-y-8">
               <h2 className="text-4xl md:text-6xl font-black">Ready to build the future?</h2>
               <p className="text-xl md:text-2xl text-blue-100 max-w-2xl mx-auto">
                   Join the community of innovators today.
@@ -354,7 +354,7 @@ export function LandingPage({ onGetStarted, onLogin }: LandingPageProps) {
 
       {/* Footer */}
       <footer className="py-12 bg-slate-900 text-white border-t-2 border-black">
-          <div className="container mx-auto px-4">
+          <div className="md:container md:mx-auto px-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               {/* Brand */}
               <div className="space-y-4">
