@@ -12,11 +12,12 @@ interface MobileNavProps {
   setCurrentView: (view: "student" | "admin") => void;
   onLogout: () => void;
   onUpgrade?: () => void;
+  onXPClick?: () => void;
   streak?: number;
   xp?: number;
 }
 
-export function MobileNav({ user, currentView, setCurrentView, onLogout, onUpgrade, streak = 0, xp = 0 }: MobileNavProps) {
+export function MobileNav({ user, currentView, setCurrentView, onLogout, onUpgrade, onXPClick, streak = 0, xp = 0 }: MobileNavProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -25,6 +26,13 @@ export function MobileNav({ user, currentView, setCurrentView, onLogout, onUpgra
     setIsOpen(false); // Close the sheet first
     if (onUpgrade) {
       onUpgrade(); // Then call the upgrade handler
+    }
+  };
+
+  const handleXPClick = () => {
+    setIsOpen(false); // Close the sheet first
+    if (onXPClick) {
+      onXPClick(); // Then call the XP history handler
     }
   };
 
@@ -80,7 +88,10 @@ export function MobileNav({ user, currentView, setCurrentView, onLogout, onUpgra
                  <Flame className="h-5 w-5 text-orange-500 fill-orange-500 mb-1" />
                  <span className="text-sm font-bold">{streak} Day Streak</span>
               </div>
-              <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-purple-50/50 border border-purple-100">
+              <div
+                className="flex flex-col items-center justify-center p-3 rounded-lg bg-purple-50/50 border border-purple-100 cursor-pointer hover:bg-purple-100/50 transition-colors"
+                onClick={handleXPClick}
+              >
                  <Trophy className="h-5 w-5 text-purple-500 mb-1" />
                  <span className="text-sm font-bold">{formatXP(xp)} XP</span>
               </div>

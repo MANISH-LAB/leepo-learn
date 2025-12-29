@@ -11,6 +11,7 @@ import { Footer } from "./components/layout/Footer";
 import { ProfileSettings } from "./components/settings/ProfileSettings";
 import { NotificationsPanel } from "./components/layout/NotificationsPanel";
 import { PaymentModal, PurchasedAccess } from "./components/student/PaymentModal";
+import { XPHistory } from "./components/student/XPHistory";
 import { AboutUs } from "./components/pages/AboutUs";
 import { ContactUs } from "./components/pages/ContactUs";
 import { Pricing } from "./components/pages/Pricing";
@@ -533,6 +534,12 @@ export default function App() {
     }
   };
 
+  const handleXPClick = () => {
+    if (user) {
+      navigate('/xp-history');
+    }
+  };
+
   const handlePaymentSuccess = async (purchasedAccess: PurchasedAccess) => {
     // Subscription is now saved to database in PaymentModal
     setShowPaymentModal(false);
@@ -640,6 +647,7 @@ export default function App() {
                       streak={userStats.streak}
                       xp={userStats.xp}
                       onUpgrade={handleUpgrade}
+                      onXPClick={handleXPClick}
                     />
 
                     {/* Notifications */}
@@ -660,6 +668,7 @@ export default function App() {
                         setCurrentView={(view) => navigate(view === "admin" ? "/admin" : "/courses")}
                         onLogout={handleLogout}
                         onUpgrade={handleUpgrade}
+                        onXPClick={handleXPClick}
                         streak={userStats.streak}
                         xp={userStats.xp}
                     />
@@ -718,6 +727,18 @@ export default function App() {
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/terms-conditions" element={<TermsConditions />} />
                 <Route path="/refund-policy" element={<RefundPolicy />} />
+
+                {/* XP History - protected (requires login) */}
+                <Route
+                  path="/xp-history"
+                  element={
+                    user ? (
+                      <XPHistory userId={user.id} />
+                    ) : (
+                      <Navigate to="/courses" replace />
+                    )
+                  }
+                />
 
                 {/* Admin route - protected (only for manishkalyan141@gmail.com) */}
                 <Route

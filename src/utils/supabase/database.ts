@@ -1966,6 +1966,11 @@ export interface Purchase {
   purchased_at: string;
   user_name?: string;
   user_email?: string;
+  purchase_type?: string;
+  degree_title?: string;
+  payment_method?: string;
+  payment_id?: string;
+  order_id?: string;
 }
 
 /**
@@ -2029,18 +2034,18 @@ export async function fetchAdminStats(): Promise<{
     );
     const userCount = usersResponse.headers.get('content-range')?.split('/')[1] || '0';
 
-    // Fetch purchases
+    // Fetch subscriptions (purchases) from new subscriptions table
     const purchasesResponse = await fetch(
-      `${supabase.supabaseUrl}/rest/v1/course_purchases?select=amount,status`,
+      `${supabase.supabaseUrl}/rest/v1/subscriptions?select=total_price,payment_status&payment_status=eq.completed`,
       { headers: { ...headers, 'Prefer': 'count=exact' } }
     );
 
     const purchases = await purchasesResponse.json();
     const purchaseCount = purchasesResponse.headers.get('content-range')?.split('/')[1] || '0';
 
-    // Calculate total revenue
+    // Calculate total revenue from completed subscriptions
     const totalRevenue = purchases?.reduce((sum: number, p: any) =>
-      p.status === 'success' ? sum + (p.amount || 0) : sum, 0) || 0;
+      p.payment_status === 'completed' ? sum + (p.total_price || 0) : sum, 0) || 0;
 
     return {
       totalRevenue,
@@ -2066,8 +2071,9 @@ export async function fetchRecentPurchases(limit: number = 10): Promise<Purchase
   try {
     const accessToken = getAccessTokenFromStorage();
 
-    const response = await fetch(
-      `${supabase.supabaseUrl}/rest/v1/course_purchases?select=*,profiles!inner(full_name,email)&order=purchased_at.desc&limit=${limit}`,
+    // Fetch from subscriptions table first
+    const subsResponse = await fetch(
+      `${supabase.supabaseUrl}/rest/v1/subscriptions?select=id,user_id,total_price,currency,payment_status,created_at,payment_method,order_id,payment_id,purchase_type,degree_title,year_ids,subject_ids&order=created_at.desc&limit=${limit}`,
       {
         headers: {
           'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
@@ -2077,25 +2083,209 @@ export async function fetchRecentPurchases(limit: number = 10): Promise<Purchase
       }
     );
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    if (!subsResponse.ok) {
+      throw new Error(`HTTP error! status: ${subsResponse.status}`);
     }
 
-    const data = await response.json();
+    const subscriptions = await subsResponse.json();
 
-    return (data || []).map((purchase: any) => ({
-      id: purchase.id,
-      user_id: purchase.user_id,
-      amount: purchase.amount,
-      currency: purchase.currency,
-      status: purchase.status,
-      purchased_at: purchase.purchased_at,
-      user_name: purchase.profiles?.full_name || 'Unknown',
-      user_email: purchase.profiles?.email || '',
-    }));
+    // Get unique user IDs
+    const userIds = [...new Set(subscriptions.map((s: any) => s.user_id))];
+
+    // Fetch profiles for these users
+    let profilesMap: Record<string, any> = {};
+
+    if (userIds.length > 0) {
+      try {
+        const profilesResponse = await fetch(
+          `${supabase.supabaseUrl}/rest/v1/profiles?select=id,full_name,email&id=in.(${userIds.join(',')})`,
+          {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+              'Authorization': accessToken ? `Bearer ${accessToken}` : '',
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (profilesResponse.ok) {
+          const profiles = await profilesResponse.json();
+          profiles.forEach((profile: any) => {
+            profilesMap[profile.id] = profile;
+          });
+        }
+      } catch (profileError) {
+        console.warn('Could not fetch profiles, using user_id instead:', profileError);
+      }
+    }
+
+    // Map subscriptions data to Purchase interface format
+    return (subscriptions || []).map((subscription: any) => {
+      const profile = profilesMap[subscription.user_id];
+      return {
+        id: subscription.id,
+        user_id: subscription.user_id,
+        amount: subscription.total_price,
+        currency: subscription.currency || 'USD',
+        status: subscription.payment_status === 'completed' ? 'success' : subscription.payment_status,
+        purchased_at: subscription.created_at,
+        user_name: profile?.full_name || 'Unknown User',
+        user_email: profile?.email || subscription.user_id.substring(0, 8) + '...',
+        purchase_type: subscription.purchase_type,
+        degree_title: subscription.degree_title,
+        payment_method: subscription.payment_method || 'razorpay',
+        payment_id: subscription.payment_id,
+        order_id: subscription.order_id,
+      };
+    });
   } catch (error) {
     console.error('Error fetching recent purchases:', error);
     return [];
+  }
+}
+
+/**
+ * Fetch user's XP history with pagination
+ */
+export interface XPHistoryItem {
+  id: string;
+  video_title: string;
+  chapter_title: string;
+  subject_title: string;
+  xp_earned: number;
+  completed_at: string;
+  node_id: string;
+}
+
+export async function fetchUserXPHistory(
+  userId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<{ items: XPHistoryItem[]; total: number }> {
+  try {
+    const accessToken = getAccessTokenFromStorage();
+    const offset = (page - 1) * limit;
+
+    // Fetch completed videos from user_progress with hierarchy info
+    // We need to get the node details and traverse up to get chapter/subject
+    const progressResponse = await fetch(
+      `${supabase.supabaseUrl}/rest/v1/user_progress?user_id=eq.${userId}&is_completed=eq.true&select=id,node_id,created_at&order=created_at.desc&limit=${limit}&offset=${offset}`,
+      {
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+          'Authorization': accessToken ? `Bearer ${accessToken}` : '',
+          'Content-Type': 'application/json',
+          'Prefer': 'count=exact',
+        },
+      }
+    );
+
+    if (!progressResponse.ok) {
+      throw new Error(`HTTP error! status: ${progressResponse.status}`);
+    }
+
+    const progressData = await progressResponse.json();
+    const totalCount = progressResponse.headers.get('content-range')?.split('/')[1] || '0';
+
+    // Get all unique node IDs
+    const nodeIds = progressData.map((p: any) => p.node_id);
+
+    if (nodeIds.length === 0) {
+      return { items: [], total: 0 };
+    }
+
+    // Fetch all hierarchy nodes in one query
+    const nodesResponse = await fetch(
+      `${supabase.supabaseUrl}/rest/v1/hierarchy_nodes?select=id,title,parent_id,type&id=in.(${nodeIds.join(',')})`,
+      {
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+          'Authorization': accessToken ? `Bearer ${accessToken}` : '',
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!nodesResponse.ok) {
+      throw new Error(`HTTP error! status: ${nodesResponse.status}`);
+    }
+
+    const nodesData = await nodesResponse.json();
+    const nodesMap: Record<string, any> = {};
+    nodesData.forEach((node: any) => {
+      nodesMap[node.id] = node;
+    });
+
+    // Get all parent IDs to fetch chapters and subjects
+    const parentIds = [...new Set(nodesData.map((n: any) => n.parent_id).filter(Boolean))];
+
+    let parentsMap: Record<string, any> = {};
+    if (parentIds.length > 0) {
+      const parentsResponse = await fetch(
+        `${supabase.supabaseUrl}/rest/v1/hierarchy_nodes?select=id,title,parent_id,type&id=in.(${parentIds.join(',')})`,
+        {
+          headers: {
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+            'Authorization': accessToken ? `Bearer ${accessToken}` : '',
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (parentsResponse.ok) {
+        const parentsData = await parentsResponse.json();
+        parentsData.forEach((node: any) => {
+          parentsMap[node.id] = node;
+        });
+
+        // Get grandparents (subjects) if needed
+        const grandparentIds = [...new Set(parentsData.map((n: any) => n.parent_id).filter(Boolean))];
+        if (grandparentIds.length > 0) {
+          const grandparentsResponse = await fetch(
+            `${supabase.supabaseUrl}/rest/v1/hierarchy_nodes?select=id,title,type&id=in.(${grandparentIds.join(',')})`,
+            {
+              headers: {
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+                'Authorization': accessToken ? `Bearer ${accessToken}` : '',
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+
+          if (grandparentsResponse.ok) {
+            const grandparentsData = await grandparentsResponse.json();
+            grandparentsData.forEach((node: any) => {
+              parentsMap[node.id] = node;
+            });
+          }
+        }
+      }
+    }
+
+    // Build XP history items
+    const items: XPHistoryItem[] = progressData.map((progress: any) => {
+      const videoNode = nodesMap[progress.node_id];
+      const chapterNode = videoNode?.parent_id ? parentsMap[videoNode.parent_id] : null;
+      const subjectNode = chapterNode?.parent_id ? parentsMap[chapterNode.parent_id] : null;
+
+      return {
+        id: progress.id,
+        video_title: videoNode?.title || 'Unknown Video',
+        chapter_title: chapterNode?.title || 'Unknown Chapter',
+        subject_title: subjectNode?.title || 'Unknown Subject',
+        xp_earned: 50, // 50 XP per video completion
+        completed_at: progress.created_at,
+        node_id: progress.node_id,
+      };
+    });
+
+    return {
+      items,
+      total: parseInt(totalCount),
+    };
+  } catch (error) {
+    console.error('Error fetching XP history:', error);
+    return { items: [], total: 0 };
   }
 }
 
@@ -2492,11 +2682,10 @@ export async function createSubscription(subscription: {
   total_price: number;
   payment_status?: 'pending' | 'completed';
   payment_id?: string;
+  order_id?: string;
   payment_method?: string;
 }): Promise<Subscription | null> {
   try {
-    console.log('💳 Creating subscription:', subscription);
-
     const { data, error } = await supabase
       .from('subscriptions')
       .insert({
@@ -2510,7 +2699,8 @@ export async function createSubscription(subscription: {
         currency: 'USD',
         payment_status: subscription.payment_status || 'completed',
         payment_id: subscription.payment_id || null,
-        payment_method: subscription.payment_method || 'demo',
+        order_id: subscription.order_id || null,
+        payment_method: subscription.payment_method || 'razorpay',
         is_lifetime: true,
         is_active: true,
       })

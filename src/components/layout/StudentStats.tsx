@@ -5,9 +5,10 @@ interface StudentStatsProps {
   streak?: number;
   xp?: number;
   onUpgrade?: () => void;
+  onXPClick?: () => void;
 }
 
-export function StudentStats({ streak = 0, xp = 0, onUpgrade }: StudentStatsProps) {
+export function StudentStats({ streak = 0, xp = 0, onUpgrade, onXPClick }: StudentStatsProps) {
   const formatXP = (num: number) => {
     if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
     return num.toString();
@@ -21,8 +22,12 @@ export function StudentStats({ streak = 0, xp = 0, onUpgrade }: StudentStatsProp
         <span className="font-bold text-xs md:text-sm text-foreground">{streak}</span>
       </div>
 
-      {/* Coins/XP */}
-      <div className="flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-full hover:bg-muted/50 transition-colors cursor-help" title={`${xp} Total XP`}>
+      {/* Coins/XP - Click to view history */}
+      <div
+        className="flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-full hover:bg-muted/50 transition-colors cursor-pointer"
+        title={`${xp} Total XP - Click to view history`}
+        onClick={onXPClick}
+      >
         <Trophy className="h-4 w-4 md:h-5 md:w-5 text-purple-500" />
         <span className="font-bold text-xs md:text-sm text-foreground">{formatXP(xp)}</span>
       </div>

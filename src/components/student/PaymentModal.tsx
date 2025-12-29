@@ -246,47 +246,183 @@ export function PaymentModal({
 
   // Handle payment
   const handlePayment = async () => {
+    console.log('🎯 PAY BUTTON CLICKED - Razorpay Integration');
     setIsLoading(true);
 
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      // WORKAROUND: Get session directly from localStorage to avoid hanging
+      console.log('📝 Step 1: Getting user from localStorage...');
 
-      if (!user) {
-        console.error('No user found');
+      // Read session from localStorage directly (Supabase stores it here)
+      const supabaseAuthKey = `sb-${import.meta.env.VITE_SUPABASE_URL?.split('//')[1]?.split('.')[0]}-auth-token`;
+      console.log('🔑 Looking for key:', supabaseAuthKey);
+
+      const storedSession = localStorage.getItem(supabaseAuthKey);
+      console.log('💾 Stored session exists:', !!storedSession);
+
+      if (!storedSession) {
+        console.error('❌ No stored session - user not logged in');
+        alert('Please log in to continue with payment');
         setIsLoading(false);
         return;
       }
 
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      let sessionData;
+      try {
+        sessionData = JSON.parse(storedSession);
+        console.log('✅ Session parsed successfully');
+      } catch (parseError) {
+        console.error('❌ Failed to parse session:', parseError);
+        alert('Session error. Please try logging out and back in.');
+        setIsLoading(false);
+        return;
+      }
 
-      // Save subscription to database
-      const subscription = await createSubscription({
-        user_id: user.id,
-        purchase_type: selectedYears.size > 0 ? (selectedYears.size > 1 ? 'years' : 'year') : 'subject',
-        degree_id: selectedDegree?.id,
-        degree_title: selectedDegree?.title,
-        year_ids: Array.from(selectedYears),
-        subject_ids: Array.from(selectedSubjects),
-        total_price: totalPrice,
-        payment_status: 'completed',
-        payment_method: 'demo',
+      const user = sessionData?.user;
+      console.log('👤 User from localStorage:', user?.email || 'No user');
+
+      if (!user) {
+        console.error('❌ No user in session');
+        alert('Please log in to continue with payment');
+        setIsLoading(false);
+        return;
+      }
+
+      // Create Razorpay order
+      console.log('📝 Step 2: Creating Razorpay order...', { amount: totalPrice, currency: 'USD' });
+      const orderResponse = await fetch('http://localhost:3010/api/razorpay/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: totalPrice,
+          currency: 'USD',
+        }),
       });
 
-      if (subscription) {
-        console.log('✅ Subscription saved successfully:', subscription);
-        setStep("success");
-      } else {
-        console.error('❌ Failed to save subscription');
-        // Still show success for demo purposes
-        setStep("success");
+      console.log('📡 Order response status:', orderResponse.status);
+
+      if (!orderResponse.ok) {
+        const errorText = await orderResponse.text();
+        console.error('❌ Order creation failed:', errorText);
+        throw new Error('Failed to create order: ' + errorText);
       }
+
+      const orderData = await orderResponse.json();
+      console.log('✅ Order created:', orderData);
+      const { orderId, amount, currency } = orderData;
+
+      // Razorpay Checkout options
+      console.log('📝 Step 3: Opening Razorpay checkout...');
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: amount,
+        currency: currency,
+        name: 'Leepo Learn',
+        description: `${selectedYears.size > 0 ? 'Year' : 'Subject'} Purchase - ${selectedDegree?.title || ''}`,
+        order_id: orderId,
+        handler: async function (response: any) {
+          // Payment successful - verify and save
+          console.log('💳 PAYMENT HANDLER CALLED - Razorpay response:', response);
+
+          try {
+            setIsLoading(true);
+            console.log('🔄 Setting loading to true');
+
+            // Verify payment signature
+            console.log('📝 Step 4: Verifying payment signature...');
+            console.log('🔑 Payment details:', {
+              order_id: response.razorpay_order_id,
+              payment_id: response.razorpay_payment_id,
+              signature: response.razorpay_signature?.substring(0, 20) + '...'
+            });
+
+            const verifyResponse = await fetch('http://localhost:3010/api/razorpay/verify-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+
+            console.log('📡 Verification response status:', verifyResponse.status);
+            const verification = await verifyResponse.json();
+            console.log('✅ Verification result:', verification);
+
+            if (verification.success && verification.verified) {
+              console.log('✅ Payment verified successfully!');
+
+              // Save subscription to database via backend API
+              console.log('💾 Step 5: Saving subscription to database via backend...');
+              const subscriptionData = {
+                user_id: user.id,
+                purchase_type: selectedYears.size > 0 ? (selectedYears.size > 1 ? 'years' : 'year') : 'subject',
+                degree_id: selectedDegree?.id,
+                degree_title: selectedDegree?.title,
+                year_ids: Array.from(selectedYears),
+                subject_ids: Array.from(selectedSubjects),
+                total_price: totalPrice,
+                payment_status: 'completed',
+                payment_method: 'razorpay',
+                payment_id: response.razorpay_payment_id,
+                order_id: response.razorpay_order_id,
+              };
+              console.log('📦 Subscription data:', subscriptionData);
+
+              const subscriptionResponse = await fetch('http://localhost:3010/api/subscriptions/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(subscriptionData),
+              });
+
+              console.log('📡 Subscription response status:', subscriptionResponse.status);
+              const subscriptionResult = await subscriptionResponse.json();
+              console.log('💾 Subscription result:', subscriptionResult);
+
+              if (subscriptionResult.success && subscriptionResult.subscription) {
+                console.log('🎉 SUCCESS! Moving to success screen');
+                setStep("success");
+              } else {
+                console.error('❌ Subscription creation failed:', subscriptionResult.error);
+                alert('Payment successful but failed to save subscription. Please contact support.');
+              }
+            } else {
+              console.error('❌ Payment verification failed:', verification);
+              alert('Payment verification failed. Please contact support.');
+            }
+          } catch (error) {
+            console.error('💥 Payment handler error:', error);
+            console.error('💥 Error stack:', (error as Error).stack);
+            alert('Payment verification failed. Please contact support with order ID: ' + response.razorpay_order_id);
+          } finally {
+            console.log('🔄 Setting loading to false');
+            setIsLoading(false);
+          }
+        },
+        prefill: {
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
+          email: user.email || '',
+        },
+        theme: {
+          color: '#2563eb',
+        },
+        modal: {
+          ondismiss: function() {
+            setIsLoading(false);
+          }
+        }
+      };
+
+      // Open Razorpay Checkout
+      console.log('🚀 Opening Razorpay...');
+      const razorpay = new (window as any).Razorpay(options);
+      razorpay.open();
+      console.log('✅ Razorpay opened successfully!');
+
     } catch (error) {
-      console.error('❌ Error processing payment:', error);
-      // Still show success for demo purposes
-      setStep("success");
-    } finally {
+      console.error('❌ PAYMENT ERROR:', error);
+      alert('Failed to initiate payment. Please try again. Error: ' + (error as Error).message);
       setIsLoading(false);
     }
   };
@@ -615,9 +751,12 @@ export function PaymentModal({
                     <CreditCard className="h-5 w-5" />
                     Payment Details
                   </h3>
-                  <div className="bg-purple-50 p-4 rounded-lg border-2 border-black mb-4">
-                    <p className="text-slate-700 text-sm font-medium">
-                      Payment integration coming soon. For now, this is a demo.
+                  <div className="bg-green-50 p-4 rounded-lg border-2 border-green-600 mb-4">
+                    <p className="text-green-900 text-sm font-bold mb-2">
+                      ✅ Secure Payment via Razorpay
+                    </p>
+                    <p className="text-slate-700 text-xs font-medium">
+                      Click "Pay" below to complete your purchase using Razorpay's secure checkout. You can pay with credit/debit cards, UPI, net banking, and wallets.
                     </p>
                   </div>
                   <div className="bg-blue-50 p-3 rounded-lg border-2 border-blue-200">

@@ -8,6 +8,8 @@ import profileRoutes from './routes/profiles.js';
 import statsRoutes from './routes/stats.js';
 import purchaseRoutes from './routes/purchases.js';
 import hierarchyRoutes from './routes/hierarchy.js';
+import razorpayRoutes from './routes/razorpay.js';
+import subscriptionRoutes from './routes/subscriptions.js';
 
 dotenv.config();
 
@@ -46,6 +48,8 @@ app.use('/api/profiles', profileRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/purchases', purchaseRoutes);
 app.use('/api/hierarchy', hierarchyRoutes);
+app.use('/api/razorpay', razorpayRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -81,6 +85,10 @@ const server = app.listen(PORT, () => {
   console.log(`   - GET  /api/purchases/:userId`);
   console.log(`   - POST /api/purchases`);
   console.log(`   - GET  /api/hierarchy`);
+  console.log(`   - POST /api/razorpay/create-order`);
+  console.log(`   - POST /api/razorpay/verify-payment`);
+  console.log(`   - GET  /api/razorpay/payment/:paymentId`);
+  console.log(`   - POST /api/subscriptions/create`);
   console.log('\n✅ Server is ready! Keep this terminal open.\n');
 });
 
