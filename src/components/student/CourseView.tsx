@@ -1989,70 +1989,11 @@ export function CourseView({
                                HI
                            </Button>
                        </div>
-                       {(language === 'hi' ? (activeTopic.videoUrlHindi && activeTopic.audioUrlHindi) : (activeTopic.videoUrl && activeTopic.audioUrl)) && (
-                         <>
-                           <Button 
-                             size="sm" 
-                             variant={mediaMode === 'video' ? 'secondary' : 'ghost'} 
-                             className={`h-8 text-xs backdrop-blur-md ${mediaMode !== 'video' ? 'bg-black/40 text-white hover:bg-black/60' : ''}`}
-                             onClick={(e) => {
-                                 e.stopPropagation();
-                                 setIsPlaying(false);
-                                 setMediaMode('video');
-                             }}
-                           >
-                               Video
-                           </Button>
-                           <Button 
-                             size="sm" 
-                             variant={mediaMode === 'audio' ? 'secondary' : 'ghost'} 
-                             className={`h-8 text-xs backdrop-blur-md ${mediaMode !== 'audio' ? 'bg-black/40 text-white hover:bg-black/60' : ''}`}
-                             onClick={(e) => {
-                                 e.stopPropagation();
-                                 setIsPlaying(false);
-                                 setMediaMode('audio');
-                             }}
-                           >
-                               Audio
-                           </Button>
-                         </>
-                       )}
-                       
-                        {/* Theatre Mode button moved to bottom right */}
                    </div>
 
-                   {/* Top Right Actions */}
-                   <div className="absolute top-4 right-4 z-30 flex gap-2">
-                        {activeTopic.videoUrl && activeTopic.audioUrl && (
-                           <>
-                               <Button 
-                                 size="sm" 
-                                 variant={mediaMode === 'video' ? 'secondary' : 'ghost'} 
-                                 className={`h-8 text-xs backdrop-blur-md ${mediaMode !== 'video' ? 'bg-black/40 text-white hover:bg-black/60' : ''}`}
-                                 onClick={(e) => {
-                                     e.stopPropagation();
-                                     setIsPlaying(false);
-                                     setMediaMode('video');
-                                 }}
-                               >
-                                   Video
-                               </Button>
-                               <Button 
-                                 size="sm" 
-                                 variant={mediaMode === 'audio' ? 'secondary' : 'ghost'} 
-                                 className={`h-8 text-xs backdrop-blur-md ${mediaMode !== 'audio' ? 'bg-black/40 text-white hover:bg-black/60' : ''}`}
-                                 onClick={(e) => {
-                                     e.stopPropagation();
-                                     setIsPlaying(false);
-                                     setMediaMode('audio');
-                                 }}
-                               >
-                                   Audio
-                               </Button>
-                           </>
-                        )}
-                        
-                        {!isMobile && (
+                   {/* Top Right Actions - Theatre Mode */}
+                   {!isMobile && (
+                     <div className="absolute top-4 right-4 z-30 flex gap-2">
                           <Button
                              size="sm"
                              variant="secondary"
@@ -2068,8 +2009,8 @@ export function CourseView({
                           >
                             <LayoutTemplate className="mr-2 h-3.5 w-3.5" /> Theatre Mode
                           </Button>
-                        )}
-                   </div>
+                     </div>
+                   )}
 
                    {/* Left Actions - Speed & Screenshot (only for regular video, not iframe) */}
                    {!isIframeUrl(activeTopic.videoUrl) && (
