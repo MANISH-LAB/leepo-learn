@@ -43,6 +43,7 @@ import { Textarea } from "../ui/textarea";
 
 import { Node, NodeType } from "../../utils/sharedData";
 import * as db from "../../utils/supabase/database";
+import { supabase } from "../../utils/supabase/client";
 
 interface CourseManagerTabProps {
   courseData: Node[];
@@ -55,6 +56,163 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [nodeToDelete, setNodeToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [isLoadingNode, setIsLoadingNode] = useState(false);
+
+  // Fetch full node data from database when selected
+  const handleNodeSelect = async (node: Node) => {
+    console.log('🔍 Fetching full data for node:', node.id, node.type);
+    setIsLoadingNode(true);
+
+    // Create timeout that will force loading to stop
+    const timeoutId = setTimeout(() => {
+      console.error('⏱️ Query timed out after 5 seconds');
+      setIsLoadingNode(false);
+      toast.error('Database query timed out. Please refresh and try again.');
+    }, 5000);
+
+    try {
+      // Fetch basic node data using direct REST API (Supabase client hangs)
+      console.log('📡 Fetching via direct API for:', node.id);
+
+      // Get auth token from localStorage
+      const supabaseAuthKey = `sb-${supabase.supabaseUrl?.split('//')[1]?.split('.')[0]}-auth-token`;
+      const storedSession = localStorage.getItem(supabaseAuthKey);
+      let accessToken: string | undefined;
+
+      if (storedSession) {
+        try {
+          const sessionData = JSON.parse(storedSession);
+          accessToken = sessionData?.access_token;
+        } catch (e) {
+          console.warn('⚠️ Failed to parse session');
+        }
+      }
+
+      const url = `${supabase.supabaseUrl}/rest/v1/hierarchy_nodes?id=eq.${node.id}&select=*`;
+      const headers: Record<string, string> = {
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+        'Content-Type': 'application/json',
+      };
+
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+      }
+
+      const response = await fetch(url, { headers });
+      console.log('📡 Response status:', response.status);
+
+      if (!response.ok) {
+        clearTimeout(timeoutId);
+        console.error('❌ HTTP error:', response.status);
+        toast.error('Failed to load node data');
+        setIsLoadingNode(false);
+        return;
+      }
+
+      const nodeDataArray = await response.json();
+      const nodeData = nodeDataArray && nodeDataArray.length > 0 ? nodeDataArray[0] : null;
+
+      // Clear timeout since query completed
+      clearTimeout(timeoutId);
+
+      if (!nodeData) {
+        console.error('❌ No data returned for node:', node.id);
+        toast.error('Node not found in database');
+        setIsLoadingNode(false);
+        return;
+      }
+
+      console.log('✅ Fetched node data:', nodeData);
+
+      // Build the complete node object
+      let completeNode: Node = {
+        ...node,
+        id: nodeData.id,
+        title: nodeData.title,
+        type: nodeData.type,
+        iconUrl: nodeData.icon_url,
+        isActive: nodeData.is_active,
+        orderIndex: nodeData.order_index,
+      };
+
+      // If TOPIC, fetch content assets via direct API
+      if (nodeData.type === 'TOPIC') {
+        console.log('📹 Fetching content assets via direct API...');
+
+        const assetsUrl = `${supabase.supabaseUrl}/rest/v1/content_assets?node_id=eq.${node.id}&select=*`;
+        const assetsResponse = await fetch(assetsUrl, { headers });
+        console.log('📡 Assets response status:', assetsResponse.status);
+
+        if (assetsResponse.ok) {
+          const assetsArray = await assetsResponse.json();
+          const assets = assetsArray && assetsArray.length > 0 ? assetsArray[0] : null;
+
+          if (assets) {
+            console.log('✅ Fetched assets:', assets);
+            completeNode = {
+              ...completeNode,
+              videoUrl: assets.video_url,
+              videoUrlHindi: assets.video_url_hindi,
+              audioUrl: assets.audio_url,
+              audioUrlHindi: assets.audio_url_hindi,
+              pdfUrl: assets.pdf_url,
+              duration: assets.duration,
+              isPremium: assets.is_premium,
+              interactiveContent: assets.interactive_content,
+            };
+          } else {
+            console.log('ℹ️ No assets found for topic');
+          }
+        } else {
+          console.warn('⚠️ Failed to fetch assets:', assetsResponse.status);
+        }
+      }
+
+      // If CHAPTER, fetch assessment via direct API
+      if (nodeData.type === 'CHAPTER') {
+        console.log('📝 Fetching assessment via direct API...');
+
+        const assessmentUrl = `${supabase.supabaseUrl}/rest/v1/chapter_assessments?chapter_node_id=eq.${node.id}&select=*`;
+        const assessmentResponse = await fetch(assessmentUrl, { headers });
+        console.log('📡 Assessment response status:', assessmentResponse.status);
+
+        if (assessmentResponse.ok) {
+          const assessmentArray = await assessmentResponse.json();
+          const assessment = assessmentArray && assessmentArray.length > 0 ? assessmentArray[0] : null;
+
+          if (assessment && assessment.questions) {
+            console.log('✅ Fetched assessment:', assessment);
+            // Parse the jsonb questions field
+            const questions = typeof assessment.questions === 'string'
+              ? JSON.parse(assessment.questions)
+              : assessment.questions;
+
+            completeNode = {
+              ...completeNode,
+              assessment: {
+                questions: Array.isArray(questions) ? questions : []
+              }
+            };
+          } else {
+            console.log('ℹ️ No assessment found for chapter');
+          }
+        } else {
+          console.warn('⚠️ Failed to fetch assessment:', assessmentResponse.status);
+        }
+      }
+
+      console.log('🎉 Complete node data:', completeNode);
+      setSelectedNode(completeNode);
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      console.error('💥 Error loading node data:', error);
+      toast.error('Failed to load node data: ' + (error.message || 'Unknown error'));
+    } finally {
+      clearTimeout(timeoutId);
+      console.log('🏁 handleNodeSelect finished, setting isLoadingNode to false');
+      setIsLoadingNode(false);
+    }
+  };
 
   // Helper to recursively find and update a node
   const updateNode = (nodes: Node[], id: string, updates: Partial<Node>): Node[] => {
@@ -182,7 +340,7 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
       setTree(updatedTree);
 
       // Automatically select the newly created node
-      setSelectedNode(newNode);
+      await handleNodeSelect(newNode);
 
       toast.success(`Created new ${childType.toLowerCase()}`);
     } catch (error) {
@@ -325,7 +483,7 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
         <CardContent>
           <Tree
             nodes={tree}
-            onSelect={setSelectedNode}
+            onSelect={handleNodeSelect}
             onAddChild={handleAddChild}
             onDelete={(node) => setNodeToDelete({ id: node.id, title: node.title })}
             onReorder={handleReorder}
@@ -369,30 +527,47 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {selectedNode ? (
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={selectedNode.title}
-                  onChange={(e) =>
-                    setSelectedNode({ ...selectedNode, title: e.target.value })
-                  }
-                />
+          {isLoadingNode ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center space-y-3">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+                <p className="text-sm text-muted-foreground">Loading node data...</p>
               </div>
+            </div>
+          ) : selectedNode ? (
+            <form onSubmit={handleSave} className="space-y-4">
+              {/* Basic Node Info - from hierarchy_nodes table */}
+              <div className="space-y-4 pb-4 border-b">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+                  <p className="text-xs font-bold text-blue-600 uppercase tracking-wide">
+                    Basic Info (hierarchy_nodes table)
+                  </p>
+                </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="icon">Icon/Logo URL (optional)</Label>
-                <Input
-                  id="icon"
-                  value={selectedNode.iconUrl || ""}
-                  onChange={(e) =>
-                    setSelectedNode({ ...selectedNode, iconUrl: e.target.value })
-                  }
-                  placeholder="https://..."
-                />
-                <p className="text-xs text-muted-foreground">Appears on the right side of the card. Falls back to default icon if empty.</p>
+                <div className="grid gap-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    value={selectedNode.title}
+                    onChange={(e) =>
+                      setSelectedNode({ ...selectedNode, title: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="icon">Icon/Logo URL (optional)</Label>
+                  <Input
+                    id="icon"
+                    value={selectedNode.iconUrl || ""}
+                    onChange={(e) =>
+                      setSelectedNode({ ...selectedNode, iconUrl: e.target.value })
+                    }
+                    placeholder="https://..."
+                  />
+                  <p className="text-xs text-muted-foreground">Appears on the right side of the card. Falls back to default icon if empty.</p>
+                </div>
               </div>
 
               <div className="grid gap-2">
@@ -486,6 +661,12 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
 
               {selectedNode.type === "CHAPTER" && (
                 <div className="space-y-4 border-t pt-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="h-2 w-2 rounded-full bg-purple-500"></div>
+                    <p className="text-xs font-bold text-purple-600 uppercase tracking-wide">
+                      Assessment (chapter_assessments table)
+                    </p>
+                  </div>
                   <div className="flex items-center justify-between">
                     <Label className="text-base">Chapter Assessment</Label>
                     <Button variant="outline" size="sm" type="button" onClick={() => {
@@ -581,6 +762,12 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
               {selectedNode.type === "TOPIC" && (
                 <>
                   <div className="space-y-4 border-t pt-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                      <p className="text-xs font-bold text-green-600 uppercase tracking-wide">
+                        Content Assets (content_assets table)
+                      </p>
+                    </div>
                     <div className="p-3 border rounded-lg bg-orange-50">
                       <h3 className="font-semibold text-sm mb-2">Topic Content Settings</h3>
                       <p className="text-xs text-muted-foreground">
