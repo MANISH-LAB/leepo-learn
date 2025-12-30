@@ -546,7 +546,7 @@ export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEG
                 <CardContent>
                    {localContinueLearning ? (
                      <div>
-                        <div className="font-bold text-lg truncate text-white hover:text-gray-200 bg-black px-3 py-2 rounded-lg inline-block border-2 border-black">{localContinueLearning.subject_title}</div>
+                        <div className="font-bold text-sm md:text-base lg:text-lg truncate text-white hover:text-gray-200 bg-black px-2 py-1.5 md:px-3 md:py-2 rounded-lg inline-block border-2 border-black max-w-full">{localContinueLearning.subject_title}</div>
                      </div>
                    ) : (
                      <p className="text-sm text-slate-500">No active subject</p>
@@ -613,7 +613,7 @@ export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEG
                 <CardContent>
                    {localContinueLearning ? (
                      <div>
-                        <div className="font-bold text-lg truncate text-white hover:text-gray-200 bg-black px-3 py-2 rounded-lg inline-block border-2 border-black">{localContinueLearning.topic_title}</div>
+                        <div className="font-bold text-sm md:text-base lg:text-lg truncate text-white hover:text-gray-200 bg-black px-2 py-1.5 md:px-3 md:py-2 rounded-lg inline-block border-2 border-black max-w-full">{localContinueLearning.topic_title}</div>
                      </div>
                    ) : (
                      <p className="text-sm text-slate-500">No recent activity</p>

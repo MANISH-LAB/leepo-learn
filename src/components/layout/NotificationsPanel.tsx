@@ -141,8 +141,9 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        className="w-[calc(100vw-50rem)] md:w-96 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-        align="end"
+        className="w-[calc(100vw-2rem)] max-w-md md:w-96 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+        align="center"
+        alignOffset={0}
         sideOffset={8}
       >
         {/* Header */}
@@ -227,7 +228,7 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
                         )}
                       </div>
 
-                      <p className="text-sm text-slate-600 line-clamp-2 mb-2">
+                      <p className="text-sm text-slate-600 line-clamp-3 md:line-clamp-2 mb-2">
                         {notification.message}
                       </p>
 

@@ -1017,6 +1017,14 @@ export async function upsertAssessment(chapterId: string, questions: {
   correctAnswer: number;
 }[]): Promise<boolean> {
   try {
+    console.log('📝 Upserting assessment for chapter:', chapterId);
+    console.log('📝 Questions to save:', questions);
+
+    if (!questions || questions.length === 0) {
+      console.log('⚠️ No questions provided, skipping assessment save');
+      return true;
+    }
+
     // First, get or create assessment
     let assessmentId: string;
 
@@ -1025,51 +1033,77 @@ export async function upsertAssessment(chapterId: string, questions: {
       .select('id')
       .eq('chapter_id', chapterId);
 
+    if (fetchError) {
+      console.error('❌ Error fetching existing assessment:', fetchError);
+      throw fetchError;
+    }
+
     const existingAssessment = existingAssessments && existingAssessments.length > 0 ? existingAssessments[0] : null;
 
     if (existingAssessment) {
       assessmentId = existingAssessment.id;
+      console.log('✅ Found existing assessment:', assessmentId);
 
       // Delete existing questions
+      console.log('🗑️ Deleting existing questions...');
       const { error: deleteError } = await supabase
         .from('assessment_questions')
         .delete()
         .eq('assessment_id', assessmentId);
 
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error('❌ Error deleting questions:', deleteError);
+        throw deleteError;
+      }
+      console.log('✅ Deleted existing questions');
     } else {
       // Create new assessment
+      console.log('➕ Creating new assessment...');
       const { data: newAssessments, error: createError } = await supabase
         .from('assessments')
         .insert({ chapter_id: chapterId })
         .select('id');
 
-      if (createError) throw createError;
+      if (createError) {
+        console.error('❌ Error creating assessment:', createError);
+        throw createError;
+      }
       const newAssessment = newAssessments && newAssessments.length > 0 ? newAssessments[0] : null;
       if (!newAssessment) throw new Error('Failed to create assessment');
       assessmentId = newAssessment.id;
+      console.log('✅ Created new assessment:', assessmentId);
     }
 
     // Insert all questions
-    if (questions.length > 0) {
-      const { error: insertError } = await supabase
-        .from('assessment_questions')
-        .insert(
-          questions.map((q, index) => ({
-            assessment_id: assessmentId,
-            question_text: q.text,
-            options: q.options,
-            correct_answer: q.correctAnswer,
-            order_index: index,
-          }))
-        );
+    console.log(`➕ Inserting ${questions.length} questions...`);
+    const questionsToInsert = questions.map((q, index) => ({
+      assessment_id: assessmentId,
+      question_text: q.text,
+      options: q.options,
+      correct_answer: q.correctAnswer,
+      order_index: index,
+    }));
 
-      if (insertError) throw insertError;
+    console.log('📦 Questions payload:', questionsToInsert);
+
+    const { error: insertError } = await supabase
+      .from('assessment_questions')
+      .insert(questionsToInsert);
+
+    if (insertError) {
+      console.error('❌ Error inserting questions:', insertError);
+      throw insertError;
     }
 
+    console.log('✅ Assessment saved successfully!');
     return true;
-  } catch (error) {
-    console.error('Error upserting assessment:', error);
+  } catch (error: any) {
+    console.error('❌ Error upserting assessment:', {
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+      code: error?.code
+    });
     return false;
   }
 }

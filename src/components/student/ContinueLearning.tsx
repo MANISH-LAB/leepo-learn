@@ -72,17 +72,17 @@ export function ContinueLearning({ userId, onResume }: ContinueLearningProps) {
     <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px)] transition-all bg-gradient-to-br from-purple-50 via-blue-50 to-white cursor-pointer group">
       <CardContent className="p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-purple-100 rounded-lg border-2 border-black group-hover:bg-purple-200 transition-colors">
               <Play className="h-5 w-5 text-purple-600 fill-purple-600" />
             </div>
-            <h3 className="font-black text-lg">Continue Learning</h3>
+            <h3 className="font-black text-base md:text-lg">Continue Learning</h3>
           </div>
           <Button
             onClick={handleResume}
             size="sm"
-            className="bg-purple-600 hover:bg-purple-700 text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all font-bold"
+            className="bg-purple-600 hover:bg-purple-700 text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all font-bold w-full md:w-auto"
           >
             Resume
             <ChevronRight className="h-4 w-4 ml-1" />
