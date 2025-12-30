@@ -4,6 +4,7 @@ export type NodeType = "DEGREE" | "YEAR" | "SUBJECT" | "CHAPTER" | "TOPIC";
 export interface Node {
   id: string;
   title: string;
+  slug?: string; // URL-friendly slug for hierarchical routing
   type: NodeType;
   children?: Node[];
   // Content properties

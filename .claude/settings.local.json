@@ -26,7 +26,11 @@
       "Bash(find:*)",
       "Bash(tail:*)",
       "Bash(powershell:*)",
-      "Bash(ffmpeg:*)"
+      "Bash(ffmpeg:*)",
+      "Bash(npx supabase:*)",
+      "mcp__supabase__get_project_url",
+      "mcp__supabase__list_extensions",
+      "mcp__supabase__search_docs"
     ],
     "deny": [],
     "ask": []

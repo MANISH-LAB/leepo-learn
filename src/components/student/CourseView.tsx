@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Node } from "../../utils/sharedData";
 import { formatTimeAgo } from "../../utils/timeUtils";
 import { ContinueLearningData } from "../../utils/continueLearning";
 import { awardXPForCompletion } from "../../utils/streakAndXP";
 import * as db from "../../utils/supabase/database";
 import { useIsMobile } from "../ui/use-mobile";
+import { buildCoursePath } from "../../utils/slugify";
 import {
   Card,
   CardContent,
@@ -245,6 +247,8 @@ export function CourseView({
   autoSelectTopicId?: string
 }) {
   const isMobile = useIsMobile();
+  const params = useParams<{ degreeSlug?: string; subjectSlug?: string; chapterSlug?: string; topicSlug?: string }>();
+  const navigate = useNavigate();
   const chapters = subjectNode?.children || [];
   const [selectedChapter, setSelectedChapter] = useState<Node | null>(null);
   const [activeTopic, setActiveTopic] = useState<Node | null>(null);
@@ -448,6 +452,42 @@ export function CourseView({
       }
     }
   }, [continueLearning, chapters]);
+
+  // Sync state with URL parameters (for chapter/topic selection via URL)
+  useEffect(() => {
+    const syncWithURL = async () => {
+      // Skip if auto-navigate is active (it handles its own selection)
+      if (autoSelectChapterId && autoSelectTopicId) return;
+
+      // Skip if no chapters loaded yet
+      if (chapters.length === 0) return;
+
+      const { chapterSlug, topicSlug } = params;
+
+      // If we have a chapter slug in URL, find and select it
+      if (chapterSlug) {
+        const chapter = chapters.find(ch => ch.slug === chapterSlug);
+        if (chapter && (!selectedChapter || selectedChapter.slug !== chapterSlug)) {
+          // Load the chapter (which will also set first topic)
+          await handleChapterClick(chapter);
+
+          // If we also have a topic slug, select it after chapter loads
+          if (topicSlug && chapter.children) {
+            const topic = chapter.children.find(t => t.slug === topicSlug);
+            if (topic) {
+              setActiveTopic(topic);
+            }
+          }
+        }
+      } else if (selectedChapter) {
+        // No chapter in URL but we have one selected - clear it
+        setSelectedChapter(null);
+        setActiveTopic(null);
+      }
+    };
+
+    syncWithURL();
+  }, [params.chapterSlug, params.topicSlug, chapters.length]);
 
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('theatre-mode-change', { detail: { active: isTheatreMode } }));
@@ -912,6 +952,12 @@ export function CourseView({
       // Set first unlocked topic as active
       const firstUnlock = topics.find(t => !t.isPremium || isSubscribed) || topics[0];
       setActiveTopic(firstUnlock);
+
+      // Navigate to hierarchical URL: /courses/:degreeSlug/:subjectSlug/:chapterSlug
+      if (degreeNode?.slug && subjectNode?.slug && chapter.slug) {
+        const path = buildCoursePath(degreeNode.slug, subjectNode.slug, chapter.slug);
+        navigate(path);
+      }
     } catch (error) {
       console.error("Error loading topics:", error);
       // Fallback: use chapter as-is if it already has children
@@ -932,6 +978,12 @@ export function CourseView({
           // Track learning position when topic is accessed
           if (userId && topic.id) {
             await db.updateUserLearningPosition(userId, topic.id);
+          }
+
+          // Navigate to hierarchical URL: /courses/:degreeSlug/:subjectSlug/:chapterSlug/:topicSlug
+          if (degreeNode?.slug && subjectNode?.slug && selectedChapter?.slug && topic.slug) {
+            const path = buildCoursePath(degreeNode.slug, subjectNode.slug, selectedChapter.slug, topic.slug);
+            navigate(path);
           }
       }
   };
@@ -1004,6 +1056,7 @@ export function CourseView({
                     return (
                     <Card
                         key={chapter.id}
+                        data-chapter-id={chapter.id}
                         className="group cursor-pointer bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200"
                         onClick={() => handleChapterClick(chapter)}
                     >
@@ -1146,7 +1199,15 @@ export function CourseView({
                     <Button variant="outline" onClick={() => setShowCompletionScreen(false)}>
                         Review Lessons
                     </Button>
-                    <Button size="lg" className="px-8 bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => { setShowCompletionScreen(false); setSelectedChapter(null); }}>
+                    <Button size="lg" className="px-8 bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => {
+                        setShowCompletionScreen(false);
+                        setSelectedChapter(null);
+                        setActiveTopic(null);
+                        // Navigate back to subject view
+                        if (degreeNode?.slug && subjectNode?.slug) {
+                          navigate(buildCoursePath(degreeNode.slug, subjectNode.slug));
+                        }
+                    }}>
                         Continue
                     </Button>
                 </div>
@@ -1600,7 +1661,14 @@ export function CourseView({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             {!isMobile && (
-              <Button variant="ghost" size="sm" onClick={() => setSelectedChapter(null)} className="-ml-2">
+              <Button variant="ghost" size="sm" onClick={() => {
+                setSelectedChapter(null);
+                setActiveTopic(null);
+                // Navigate back to subject view
+                if (degreeNode?.slug && subjectNode?.slug) {
+                  navigate(buildCoursePath(degreeNode.slug, subjectNode.slug));
+                }
+              }} className="-ml-2">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back to Course
               </Button>
             )}
@@ -2253,6 +2321,7 @@ export function CourseView({
         {chapters.map((chapter) => (
           <Card
             key={chapter.id}
+            data-chapter-id={chapter.id}
             className="group cursor-pointer bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200"
             onClick={() => handleChapterClick(chapter)}
           >

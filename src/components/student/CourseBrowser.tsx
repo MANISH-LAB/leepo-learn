@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { CourseView } from "./CourseView";
 import { FullDashboard } from "./FullDashboard";
 import {
@@ -13,6 +14,7 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Progress } from "../ui/progress";
 import { Input } from "../ui/input";
+import { Tooltip, TooltipTrigger, TooltipContent } from "../ui/tooltip";
 import {
   BookOpen,
   Clock,
@@ -21,7 +23,8 @@ import {
   GraduationCap,
   CalendarDays,
   ArrowLeft,
-  Loader2
+  Loader2,
+  Info
 } from "lucide-react";
 
 import { Node } from "../../utils/sharedData";
@@ -29,6 +32,7 @@ import { formatTimeAgo } from "../../utils/timeUtils";
 import { ContinueLearningData } from "../../utils/continueLearning";
 import * as db from "../../utils/supabase/database";
 import { useIsMobile } from "../ui/use-mobile";
+import { buildCoursePath } from "../../utils/slugify";
 import {
   fetchDashboardStats,
   fetchResumePoint,
@@ -61,6 +65,8 @@ interface CourseBrowserProps {
 
 export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEGREE", onViewDashboard, user, streak = 0, xp = 0, maxStreak = 0, avgScore = 0, continueLearning, onXPUpdate, autoNavigateTarget, onAutoNavigateComplete }: CourseBrowserProps) {
   const isMobile = useIsMobile();
+  const params = useParams<{ degreeSlug?: string; subjectSlug?: string; chapterSlug?: string; topicSlug?: string }>();
+  const navigate = useNavigate();
   const [level, setLevel] = useState<BrowsingLevel>(initialLevel);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDashboardExpanded, setIsDashboardExpanded] = useState(false);
@@ -69,6 +75,7 @@ export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEG
   // Dashboard data from database
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [resumePoint, setResumePoint] = useState<ResumePoint | null>(null);
+  const [localContinueLearning, setLocalContinueLearning] = useState<db.ContinueLearningData | null>(null);
 
   // Selection History for Breadcrumbs
   const [selectedDegree, setSelectedDegree] = useState<Node | null>(null);
@@ -78,23 +85,99 @@ export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEG
   // Local resume target for embedded dashboard
   const [localResumeTarget, setLocalResumeTarget] = useState<{ subjectId: string; chapterId: string; topicId: string } | null>(null);
 
-  // Fetch dashboard data
+  // Fetch continue learning data for collapsed dashboard cards
   useEffect(() => {
-    const loadDashboardData = async () => {
-      try {
-        const [dashboardStats, resume] = await Promise.all([
-          fetchDashboardStats('all'),
-          fetchResumePoint()
-        ]);
-        setStats(dashboardStats);
-        setResumePoint(resume);
-      } catch (error) {
-        console.error('Error loading dashboard data:', error);
+    const loadContinueLearning = async () => {
+      if (user?.id) {
+        const continueData = await db.getContinueLearning(user.id);
+        setLocalContinueLearning(continueData);
       }
     };
 
-    loadDashboardData();
-  }, []);
+    loadContinueLearning();
+  }, [user?.id]);
+
+  // Sync state with URL parameters (for direct links and back/forward navigation)
+  useEffect(() => {
+    const syncWithURL = async () => {
+      // Skip if auto-navigate is active (it handles its own navigation)
+      if (autoNavigateTarget || localResumeTarget) return;
+
+      // Skip if no course data loaded yet
+      if (courseData.length === 0) return;
+
+      const { degreeSlug, subjectSlug } = params;
+
+      // If no params, show degree selection
+      if (!degreeSlug) {
+        if (level !== "DEGREE") {
+          setLevel("DEGREE");
+          setSelectedDegree(null);
+          setSelectedYear(null);
+          setSelectedSubject(null);
+        }
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+
+        // Find degree by slug
+        const degree = courseData.find(d => d.slug === degreeSlug);
+        if (!degree) {
+          console.error(`Degree not found for slug: ${degreeSlug}`);
+          navigate('/courses');
+          return;
+        }
+
+        // Load years for this degree
+        const years = await db.fetchYearsForDegree(degree.id);
+        const updatedDegree = { ...degree, children: years };
+        setSelectedDegree(updatedDegree);
+
+        // If we have a subject slug, navigate to subject view
+        if (subjectSlug) {
+          // Search for subject across all years
+          let foundSubject: Node | null = null;
+          let foundYear: Node | null = null;
+
+          for (const year of years) {
+            const subjects = await db.fetchSubjectsForYear(year.id, user?.id);
+            foundSubject = subjects.find(s => s.slug === subjectSlug) || null;
+            if (foundSubject) {
+              foundYear = { ...year, children: subjects };
+              break;
+            }
+          }
+
+          if (!foundSubject || !foundYear) {
+            console.error(`Subject not found for slug: ${subjectSlug}`);
+            setLevel("YEAR");
+            return;
+          }
+
+          // Load chapters for the subject
+          const chapters = await db.fetchChaptersForSubject(foundSubject.id);
+          const updatedSubject = { ...foundSubject, children: chapters };
+
+          setSelectedYear(foundYear);
+          setSelectedSubject(updatedSubject);
+          setLevel("CHAPTERS");
+        } else {
+          // Just show years for the degree
+          setLevel("YEAR");
+          setSelectedYear(null);
+          setSelectedSubject(null);
+        }
+      } catch (error) {
+        console.error('Error syncing with URL:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    syncWithURL();
+  }, [params.degreeSlug, params.subjectSlug, courseData.length]);
 
   // Auto-navigate to topic when resume target is set
   useEffect(() => {
@@ -231,6 +314,11 @@ export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEG
       setSelectedDegree(updatedDegree);
       setLevel("YEAR");
       setSearchQuery("");
+
+      // Navigate to hierarchical URL
+      if (degree.slug) {
+        navigate(buildCoursePath(degree.slug));
+      }
     } catch (error) {
       console.error("Error loading years:", error);
     } finally {
@@ -250,6 +338,9 @@ export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEG
       setSelectedYear(updatedYear);
       setLevel("SUBJECT");
       setSearchQuery("");
+
+      // Year selection updates state but URL stays at degree level
+      // (following user's preferred structure: degree/subject/chapter/topic)
     } catch (error) {
       console.error("Error loading subjects:", error);
     } finally {
@@ -270,6 +361,11 @@ export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEG
       setLevel("CHAPTERS");
       setSearchQuery("");
 
+      // Navigate to hierarchical URL: /courses/:degreeSlug/:subjectSlug
+      if (selectedDegree?.slug && subject.slug) {
+        navigate(buildCoursePath(selectedDegree.slug, subject.slug));
+      }
+
       if (onSubjectSelect) {
         onSubjectSelect(subject.id);
       }
@@ -284,12 +380,19 @@ export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEG
     if (level === "CHAPTERS") {
         setLevel("SUBJECT");
         setSelectedSubject(null);
+        // Navigate back to degree level (year/subject selection)
+        if (selectedDegree?.slug) {
+          navigate(buildCoursePath(selectedDegree.slug));
+        }
     } else if (level === "SUBJECT") {
       setLevel("YEAR");
       setSelectedYear(null);
+      // Stay at degree level URL
     } else if (level === "YEAR") {
       setLevel("DEGREE");
       setSelectedDegree(null);
+      // Navigate back to courses home
+      navigate('/courses');
     }
   };
 
@@ -299,13 +402,18 @@ export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEG
       setSelectedDegree(null);
       setSelectedYear(null);
       setSelectedSubject(null);
+      navigate('/courses');
     } else if (targetLevel === "YEAR" && selectedDegree) {
       setLevel("YEAR");
       setSelectedYear(null);
       setSelectedSubject(null);
+      if (selectedDegree.slug) {
+        navigate(buildCoursePath(selectedDegree.slug));
+      }
     } else if (targetLevel === "SUBJECT" && selectedYear) {
         setLevel("SUBJECT");
         setSelectedSubject(null);
+        // Stay at degree level URL (year selection doesn't change URL)
     }
   };
 
@@ -370,7 +478,17 @@ export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEG
         <div className="grid gap-4 md:grid-cols-3 animate-in fade-in duration-300">
              <Card className="bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                 <CardHeader className="pb-2">
-                   <CardTitle className="text-sm font-bold text-slate-500">Overall Progress</CardTitle>
+                   <CardTitle className="text-sm font-bold text-slate-500 flex items-center justify-between">
+                     <span>Overall Progress</span>
+                     <Tooltip>
+                       <TooltipTrigger asChild>
+                         <Info className="h-4 w-4 text-slate-400 hover:text-slate-600 cursor-help transition-colors" />
+                       </TooltipTrigger>
+                       <TooltipContent className="max-w-xs bg-black text-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                         <p className="font-medium">Progress is calculated only for subjects you own or have access to.</p>
+                       </TooltipContent>
+                     </Tooltip>
+                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                    <div className="text-2xl font-black">{stats?.overall_completion_percentage || 0}%</div>
@@ -380,29 +498,122 @@ export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEG
                    </p>
                 </CardContent>
              </Card>
-             <Card className="bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+             <Card
+                className={`bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${localContinueLearning ? 'cursor-pointer hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all' : ''}`}
+                onClick={async () => {
+                  if (localContinueLearning && courseData.length > 0) {
+                    // Navigate to subject's chapters view
+                    setIsLoading(true);
+                    try {
+                      const degree = courseData[0];
+                      const years = await db.fetchYearsForDegree(degree.id);
+
+                      // Find the year containing this subject
+                      let targetYear = null;
+                      let targetSubject = null;
+
+                      for (const year of years) {
+                        const subjects = await db.fetchSubjectsForYear(year.id, user?.id);
+                        targetSubject = subjects.find(s => s.id === localContinueLearning.subject_id);
+                        if (targetSubject) {
+                          targetYear = { ...year, children: subjects };
+                          break;
+                        }
+                      }
+
+                      if (targetSubject && targetYear) {
+                        const chapters = await db.fetchChaptersForSubject(targetSubject.id);
+                        const updatedSubject = { ...targetSubject, children: chapters };
+
+                        setSelectedDegree({ ...degree, children: years });
+                        setSelectedYear(targetYear);
+                        setSelectedSubject(updatedSubject);
+                        setLevel("CHAPTERS");
+                        setIsDashboardExpanded(false);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
+                    } catch (error) {
+                      console.error("Error navigating to subject:", error);
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }
+                }}
+             >
                 <CardHeader className="pb-2">
-                   <CardTitle className="text-sm font-bold text-slate-500">Active Subjects</CardTitle>
+                   <CardTitle className="text-sm font-bold text-slate-500">Active Subject</CardTitle>
                 </CardHeader>
                 <CardContent>
-                   <div className="text-2xl font-black">{stats?.active_subjects || 0}</div>
-                   <p className="text-xs text-slate-500 font-medium mt-1">{stats?.completed_subjects || 0} completed</p>
+                   {localContinueLearning ? (
+                     <div>
+                        <div className="font-bold text-lg truncate text-white hover:text-gray-200 bg-black px-3 py-2 rounded-lg inline-block border-2 border-black">{localContinueLearning.subject_title}</div>
+                     </div>
+                   ) : (
+                     <p className="text-sm text-slate-500">No active subject</p>
+                   )}
                 </CardContent>
              </Card>
-             <Card className="bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+             <Card
+                className={`bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${localContinueLearning ? 'cursor-pointer hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all' : ''}`}
+                onClick={async () => {
+                  if (localContinueLearning && courseData.length > 0) {
+                    // Navigate to parent chapter view (showing all topics in the chapter)
+                    setIsLoading(true);
+                    try {
+                      const degree = courseData[0];
+                      const years = await db.fetchYearsForDegree(degree.id);
+
+                      // Find the year and subject containing this topic
+                      let targetYear = null;
+                      let targetSubject = null;
+
+                      for (const year of years) {
+                        const subjects = await db.fetchSubjectsForYear(year.id, user?.id);
+                        targetSubject = subjects.find(s => s.id === localContinueLearning.subject_id);
+                        if (targetSubject) {
+                          targetYear = { ...year, children: subjects };
+                          break;
+                        }
+                      }
+
+                      if (targetSubject && targetYear) {
+                        // Load chapters for the subject
+                        const chapters = await db.fetchChaptersForSubject(targetSubject.id);
+                        const updatedSubject = { ...targetSubject, children: chapters };
+
+                        // Navigate to chapters view
+                        setSelectedDegree({ ...degree, children: years });
+                        setSelectedYear(targetYear);
+                        setSelectedSubject(updatedSubject);
+                        setLevel("CHAPTERS");
+                        setIsDashboardExpanded(false);
+
+                        // Scroll to top then trigger chapter click after navigation completes
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                        // Small delay to ensure DOM is ready, then find and click the chapter
+                        setTimeout(() => {
+                          const chapterElement = document.querySelector(`[data-chapter-id="${localContinueLearning.chapter_id}"]`);
+                          if (chapterElement instanceof HTMLElement) {
+                            chapterElement.click();
+                          }
+                        }, 100);
+                      }
+                    } catch (error) {
+                      console.error("Error navigating to chapter:", error);
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }
+                }}
+             >
                 <CardHeader className="pb-2">
                    <CardTitle className="text-sm font-bold text-slate-500">Next Up</CardTitle>
                 </CardHeader>
                 <CardContent>
-                   {resumePoint ? (
-                     <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded bg-yellow-200 border border-black flex items-center justify-center shrink-0">
-                           <BookOpen className="h-4 w-4" />
-                        </div>
-                        <div className="overflow-hidden">
-                            <div className="font-bold truncate">{resumePoint.topic_title}</div>
-                            <div className="text-xs text-slate-500 truncate">{resumePoint.subject_title}</div>
-                        </div>
+                   {localContinueLearning ? (
+                     <div>
+                        <div className="font-bold text-lg truncate text-white hover:text-gray-200 bg-black px-3 py-2 rounded-lg inline-block border-2 border-black">{localContinueLearning.topic_title}</div>
                      </div>
                    ) : (
                      <p className="text-sm text-slate-500">No recent activity</p>

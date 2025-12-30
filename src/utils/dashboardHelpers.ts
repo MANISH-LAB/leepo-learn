@@ -216,3 +216,135 @@ export function formatLastAccessed(timestamp: string): string {
 
   return date.toLocaleDateString();
 }
+
+/**
+ * Fetches the next topic to watch
+ * Returns current topic if not completed, or next topic in sequence if completed
+ */
+export async function fetchNextTopic(userId: string): Promise<{ topicTitle: string; isCompleted: boolean } | null> {
+  try {
+    // Get the user's current learning position
+    const { data: position, error: posError } = await supabase
+      .from('user_learning_position')
+      .select('node_id, updated_at')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (posError || !position) {
+      console.log('No learning position found');
+      return null;
+    }
+
+    const currentTopicId = position.node_id;
+
+    // Check if current topic is completed
+    const { data: progress, error: progError } = await supabase
+      .from('user_progress')
+      .select('node_id')
+      .eq('user_id', userId)
+      .eq('node_id', currentTopicId)
+      .maybeSingle();
+
+    const isCurrentCompleted = !!progress;
+
+    // Get current topic details
+    const { data: currentTopic, error: topicError } = await supabase
+      .from('hierarchy_nodes')
+      .select('id, title, parent_id, order_index')
+      .eq('id', currentTopicId)
+      .single();
+
+    if (topicError || !currentTopic) {
+      console.error('Error fetching current topic:', topicError);
+      return null;
+    }
+
+    // If current topic is not completed, return it
+    if (!isCurrentCompleted) {
+      return {
+        topicTitle: currentTopic.title,
+        isCompleted: false
+      };
+    }
+
+    // Current topic is completed, find next topic
+    const chapterId = currentTopic.parent_id;
+
+    // Get all topics in current chapter
+    const { data: chapterTopics, error: chapError } = await supabase
+      .from('hierarchy_nodes')
+      .select('id, title, order_index')
+      .eq('parent_id', chapterId)
+      .eq('type', 'TOPIC')
+      .order('order_index', { ascending: true });
+
+    if (chapError || !chapterTopics) {
+      console.error('Error fetching chapter topics:', chapError);
+      return null;
+    }
+
+    // Find next topic in current chapter
+    const currentIndex = chapterTopics.findIndex(t => t.id === currentTopicId);
+    if (currentIndex !== -1 && currentIndex < chapterTopics.length - 1) {
+      return {
+        topicTitle: chapterTopics[currentIndex + 1].title,
+        isCompleted: true
+      };
+    }
+
+    // No more topics in current chapter, find next chapter
+    const { data: currentChapter, error: chError } = await supabase
+      .from('hierarchy_nodes')
+      .select('id, parent_id, order_index')
+      .eq('id', chapterId)
+      .single();
+
+    if (chError || !currentChapter) {
+      return null;
+    }
+
+    const subjectId = currentChapter.parent_id;
+
+    // Get next chapter in subject
+    const { data: nextChapters, error: nextChError } = await supabase
+      .from('hierarchy_nodes')
+      .select('id')
+      .eq('parent_id', subjectId)
+      .eq('type', 'CHAPTER')
+      .gt('order_index', currentChapter.order_index)
+      .order('order_index', { ascending: true })
+      .limit(1);
+
+    if (nextChError || !nextChapters || nextChapters.length === 0) {
+      // No more chapters in subject
+      return {
+        topicTitle: 'Course completed!',
+        isCompleted: true
+      };
+    }
+
+    // Get first topic of next chapter
+    const { data: nextTopic, error: nextTopicError } = await supabase
+      .from('hierarchy_nodes')
+      .select('title')
+      .eq('parent_id', nextChapters[0].id)
+      .eq('type', 'TOPIC')
+      .order('order_index', { ascending: true })
+      .limit(1)
+      .single();
+
+    if (nextTopicError || !nextTopic) {
+      return null;
+    }
+
+    return {
+      topicTitle: nextTopic.title,
+      isCompleted: true
+    };
+  } catch (error) {
+    console.error('Error in fetchNextTopic:', error);
+    return null;
+  }
+}

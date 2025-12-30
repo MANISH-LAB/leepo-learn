@@ -25,7 +25,6 @@ import { Separator } from "../ui/separator";
 import { ScrollArea } from "../ui/scroll-area";
 import { Node } from "../../utils/sharedData";
 import * as db from "../../utils/supabase/database";
-import { supabase } from "../../utils/supabase/client";
 import { createSubscription } from "../../utils/supabase/database";
 import { useIsMobile } from "../ui/use-mobile";
 import { Price } from "../ui/Price";
@@ -109,22 +108,29 @@ export function PaymentModal({
   useEffect(() => {
     const loadPricing = async () => {
       try {
-        const { data, error } = await supabase
-          .from('pricing_config')
-          .select('config_key, config_value')
-          .eq('is_active', true);
+        console.log('💰 Loading pricing config...');
+        const data = await db.getPricingConfig();
 
-        if (error) throw error;
+        console.log('💰 Pricing config data:', data);
 
-        if (data) {
-          const subjectPriceConfig = data.find(c => c.config_key === 'subject_price');
-          const yearPriceConfig = data.find(c => c.config_key === 'year_price');
+        if (data && data.length > 0) {
+          const subjectPriceConfig = data.find((c: any) => c.config_key === 'subject_price');
+          const yearPriceConfig = data.find((c: any) => c.config_key === 'year_price');
 
-          if (subjectPriceConfig) setSubjectPrice(subjectPriceConfig.config_value);
-          if (yearPriceConfig) setYearPrice(yearPriceConfig.config_value);
+          console.log('💰 Subject price config:', subjectPriceConfig);
+          console.log('💰 Year price config:', yearPriceConfig);
+
+          if (subjectPriceConfig) {
+            setSubjectPrice(Number(subjectPriceConfig.config_value));
+            console.log('💰 Set subject price to:', subjectPriceConfig.config_value);
+          }
+          if (yearPriceConfig) {
+            setYearPrice(Number(yearPriceConfig.config_value));
+            console.log('💰 Set year price to:', yearPriceConfig.config_value);
+          }
         }
       } catch (error) {
-        console.error('Error loading pricing:', error);
+        console.error('❌ Error loading pricing:', error);
         // Keep default values if loading fails
       }
     };
@@ -543,6 +549,9 @@ export function PaymentModal({
         Full Year Access: <strong className="font-black inline-flex items-center gap-1">
           <Price amountUSD={YEAR_PRICE} className="font-black" convertedClassName="text-xs" />
         </strong> per year
+        <span className="ml-1 text-xs font-bold text-yellow-900 bg-yellow-100 px-2 py-0.5 rounded border border-yellow-400">
+          Only <Price amountUSD={YEAR_PRICE / 12} className="font-bold" convertedClassName="text-[10px]" />/month
+        </span>
       </span>
     </li>
 
@@ -552,6 +561,9 @@ export function PaymentModal({
         Individual Subject: <strong className="font-black inline-flex items-center gap-1">
           <Price amountUSD={SUBJECT_PRICE} className="font-black" convertedClassName="text-xs" />
         </strong> per subject
+        <span className="ml-1 text-xs font-bold text-yellow-900 bg-yellow-100 px-2 py-0.5 rounded border border-yellow-400">
+          Just <Price amountUSD={SUBJECT_PRICE / 12} className="font-bold" convertedClassName="text-[10px]" />/month
+        </span>
       </span>
     </li>
 
@@ -614,7 +626,7 @@ export function PaymentModal({
                                     />
                                     {year.subjects.length > 0 && (
                                       <div className="text-xs text-slate-600 font-bold mt-1">
-                                        Save ${year.subjects.length * SUBJECT_PRICE - YEAR_PRICE}
+                                        Save <Price amountUSD={year.subjects.length * SUBJECT_PRICE - YEAR_PRICE} className="font-bold" convertedClassName="text-[10px]" />
                                       </div>
                                     )}
                                   </div>
@@ -701,12 +713,20 @@ export function PaymentModal({
                     {selectedYears.size > 0 && (
                       <div className="bg-green-50 p-4 rounded-lg border-2 border-black">
                         <p className="font-black text-green-900 mb-2">Full Years ({selectedYears.size}):</p>
-                        <ul className="text-sm text-green-800 ml-4 space-y-1 font-medium">
+                        <ul className="text-sm text-green-800 ml-4 space-y-2 font-medium">
                           {Array.from(selectedYears).map(yearId => {
                             const year = years.find(y => y.id === yearId);
-                            return <li key={yearId} className="flex items-center gap-2">
-                              <span className="h-1.5 w-1.5 bg-green-600 rounded-full"></span>
-                              {year?.title} - ${YEAR_PRICE}
+                            return <li key={yearId}>
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="h-1.5 w-1.5 bg-green-600 rounded-full"></span>
+                                  <span>{year?.title}</span>
+                                </div>
+                                <div className="text-right">
+                                  <div className="font-black"><Price amountUSD={YEAR_PRICE} className="font-black" convertedClassName="text-[10px]" />/year</div>
+                                  <div className="text-xs text-green-600 font-bold">Just <Price amountUSD={YEAR_PRICE / 12} className="font-bold" convertedClassName="text-[10px]" />/month</div>
+                                </div>
+                              </div>
                             </li>;
                           })}
                         </ul>
@@ -715,7 +735,7 @@ export function PaymentModal({
                     {selectedSubjects.size > 0 && selectedYears.size < years.length && (
                       <div className="bg-blue-50 p-4 rounded-lg border-2 border-black">
                         <p className="font-black text-blue-900 mb-2">Individual Subjects ({selectedSubjects.size - (selectedYears.size * (years[0]?.subjects.length || 0))}):</p>
-                        <ul className="text-sm text-blue-800 ml-4 space-y-1 font-medium">
+                        <ul className="text-sm text-blue-800 ml-4 space-y-2 font-medium">
                           {Array.from(selectedSubjects).filter(subId => {
                             // Only show subjects that aren't part of a full year purchase
                             return !Array.from(selectedYears).some(yearId => {
@@ -724,9 +744,17 @@ export function PaymentModal({
                             });
                           }).map(subId => {
                             const subject = years.flatMap(y => y.subjects).find(s => s.id === subId);
-                            return subject ? <li key={subId} className="flex items-center gap-2">
-                              <span className="h-1.5 w-1.5 bg-blue-600 rounded-full"></span>
-                              {subject.title} - ${SUBJECT_PRICE}
+                            return subject ? <li key={subId}>
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="h-1.5 w-1.5 bg-blue-600 rounded-full"></span>
+                                  <span>{subject.title}</span>
+                                </div>
+                                <div className="text-right">
+                                  <div className="font-black"><Price amountUSD={SUBJECT_PRICE} className="font-black" convertedClassName="text-[10px]" />/year</div>
+                                  <div className="text-xs text-blue-600 font-bold">Just <Price amountUSD={SUBJECT_PRICE / 12} className="font-bold" convertedClassName="text-[10px]" />/month</div>
+                                </div>
+                              </div>
                             </li> : null;
                           })}
                         </ul>
@@ -734,13 +762,25 @@ export function PaymentModal({
                     )}
                   </div>
                   <Separator className="my-4 bg-black h-0.5" />
-                  <div className="flex justify-between items-center bg-yellow-300 p-4 rounded-lg border-2 border-black">
-                    <span className="font-black text-xl">Total:</span>
-                    <Price
-                      amountUSD={totalPrice}
-                      className="text-3xl font-black text-black"
-                      convertedClassName="text-xs"
-                    />
+                  <div className="bg-yellow-300 p-4 rounded-lg border-2 border-black">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-black text-xl">Total:</span>
+                      <div className="text-right">
+                        <Price
+                          amountUSD={totalPrice}
+                          className="text-3xl font-black text-black"
+                          convertedClassName="text-xs"
+                        />
+                        <div className="text-sm font-bold text-yellow-900 mt-1">
+                          Only ${(totalPrice / 12).toFixed(2)}/month
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-yellow-400 -mx-4 -mb-4 mt-3 px-4 py-2 rounded-b-md border-t-2 border-black">
+                      <p className="text-xs font-bold text-yellow-900 text-center">
+                        💡 Pay once, access for the full year - Best value!
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

@@ -201,43 +201,43 @@ export function FullDashboard({ onNavigate, onResumeToTopic, user, streak = 0, x
 
   console.log('✅ Loading complete - rendering dashboard');
   return (
-    <div className="container mx-auto p-6 max-w-7xl animate-in fade-in duration-500">
+    <div className="container mx-auto p-3 md:p-6 max-w-7xl animate-in fade-in duration-500">
       {/* Back to Courses Button */}
-      <div className="mb-6">
+      <div className="mb-4 md:mb-6">
         <Button
           variant="outline"
           onClick={() => onNavigate('courses')}
-          className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all font-bold"
+          className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all font-bold text-xs md:text-sm"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Courses
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
 
         {/* Main Content Area */}
-        <div className="lg:col-span-8 space-y-10">
+        <div className="lg:col-span-8 space-y-6 md:space-y-10">
 
           {/* Header Section with Smart Context Switcher */}
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-6">
-               <Avatar className="h-20 w-20 border-2 border-background shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-3 md:gap-6">
+               <Avatar className="h-14 w-14 md:h-20 md:w-20 border-2 border-background shadow-sm">
                   <AvatarImage src={user?.avatar} />
-                  <AvatarFallback className="bg-blue-100 text-blue-600 text-xl font-bold">{initials}</AvatarFallback>
+                  <AvatarFallback className="bg-blue-100 text-blue-600 text-base md:text-xl font-bold">{initials}</AvatarFallback>
                </Avatar>
                <div>
-                  <h1 className="text-3xl font-bold tracking-tight">Welcome back, {firstName}!</h1>
+                  <h1 className="text-xl md:text-3xl font-bold tracking-tight">Welcome back, {firstName}!</h1>
                   <div className="flex items-center gap-2 mt-1 text-muted-foreground">
-                     <CheckCircle className="h-4 w-4 text-green-500" />
-                     <span>Leepo Learn Dashboard</span>
+                     <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
+                     <span className="text-xs md:text-sm">Leepo Learn Dashboard</span>
                   </div>
                </div>
             </div>
 
             {/* Conditional Degree Selector - Only show if multiple degrees */}
             {degrees.length > 1 && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-2 w-full md:w-auto">
                 <label htmlFor="degree-select" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   Degree:
                 </label>
@@ -245,7 +245,7 @@ export function FullDashboard({ onNavigate, onResumeToTopic, user, streak = 0, x
                   id="degree-select"
                   value={selectedDegree}
                   onChange={(e) => setSelectedDegree(e.target.value)}
-                  className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full md:w-auto px-3 md:px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 >
                   <option value="all">All Degrees</option>
                   {degrees.map((degree) => (
@@ -259,9 +259,9 @@ export function FullDashboard({ onNavigate, onResumeToTopic, user, streak = 0, x
 
             {/* Static Header if only one degree */}
             {degrees.length === 1 && (
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Current Degree</p>
-                <h2 className="text-xl font-bold">{degrees[0].title}</h2>
+              <div className="text-left md:text-right">
+                <p className="text-xs md:text-sm text-muted-foreground">Current Degree</p>
+                <h2 className="text-lg md:text-xl font-bold">{degrees[0].title}</h2>
               </div>
             )}
           </div>
@@ -287,8 +287,8 @@ export function FullDashboard({ onNavigate, onResumeToTopic, user, streak = 0, x
 
           {/* Accessible Subjects Section */}
           <section>
-            <h2 className="text-xl font-bold mb-5 flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-lg md:text-xl font-bold mb-4 md:mb-5 flex items-center gap-2">
+              <BookOpen className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
               Accessible Subjects
             </h2>
 
@@ -362,21 +362,21 @@ export function FullDashboard({ onNavigate, onResumeToTopic, user, streak = 0, x
 
           {/* Recommended Section */}
           <section>
-             <h2 className="text-xl font-bold mb-5 flex items-center gap-2">
-                <SparklesIcon className="h-5 w-5 text-muted-foreground" />
+             <h2 className="text-lg md:text-xl font-bold mb-4 md:mb-5 flex items-center gap-2">
+                <SparklesIcon className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
                 Recommended for you
              </h2>
-             <div className="grid md:grid-cols-2 gap-6">
+             <div className="grid md:grid-cols-2 gap-4 md:gap-6">
                 <Card className="hover:shadow-md transition-all hover:border-blue-300 cursor-pointer group">
-                    <CardContent className="p-6">
-                        <div className="h-12 w-12 rounded-lg bg-blue-50 flex items-center justify-center mb-4 group-hover:bg-blue-100 transition-colors">
-                            <span className="text-2xl">⚡</span>
+                    <CardContent className="p-4 md:p-6">
+                        <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-blue-50 flex items-center justify-center mb-3 md:mb-4 group-hover:bg-blue-100 transition-colors">
+                            <span className="text-xl md:text-2xl">⚡</span>
                         </div>
-                        <h3 className="font-bold text-lg group-hover:text-blue-600 transition-colors">Circuit Theory I</h3>
-                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                        <h3 className="font-bold text-base md:text-lg group-hover:text-blue-600 transition-colors">Circuit Theory I</h3>
+                        <p className="text-xs md:text-sm text-muted-foreground mt-2 line-clamp-2">
                             Master the basics of electrical circuits, Ohm's law, and Kirchhoff's laws. A must for electrical engineers.
                         </p>
-                        <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground font-medium">
+                        <div className="mt-3 md:mt-4 flex items-center gap-2 md:gap-3 text-xs text-muted-foreground font-medium">
                             <span className="bg-secondary px-2 py-1 rounded-md">Beginner</span>
                             <span>•</span>
                             <span>45h</span>
@@ -385,15 +385,15 @@ export function FullDashboard({ onNavigate, onResumeToTopic, user, streak = 0, x
                 </Card>
 
                 <Card className="hover:shadow-md transition-all hover:border-orange-300 cursor-pointer group">
-                    <CardContent className="p-6">
-                        <div className="h-12 w-12 rounded-lg bg-orange-50 flex items-center justify-center mb-4 group-hover:bg-orange-100 transition-colors">
-                            <span className="text-2xl">🏗️</span>
+                    <CardContent className="p-4 md:p-6">
+                        <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-orange-50 flex items-center justify-center mb-3 md:mb-4 group-hover:bg-orange-100 transition-colors">
+                            <span className="text-xl md:text-2xl">🏗️</span>
                         </div>
-                        <h3 className="font-bold text-lg group-hover:text-orange-600 transition-colors">Fluid Mechanics</h3>
-                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                        <h3 className="font-bold text-base md:text-lg group-hover:text-orange-600 transition-colors">Fluid Mechanics</h3>
+                        <p className="text-xs md:text-sm text-muted-foreground mt-2 line-clamp-2">
                             Understanding fluid statics and dynamics. Essential for civil and mechanical engineering paths.
                         </p>
-                        <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground font-medium">
+                        <div className="mt-3 md:mt-4 flex items-center gap-2 md:gap-3 text-xs text-muted-foreground font-medium">
                             <span className="bg-secondary px-2 py-1 rounded-md">Intermediate</span>
                             <span>•</span>
                             <span>32h</span>
@@ -405,40 +405,40 @@ export function FullDashboard({ onNavigate, onResumeToTopic, user, streak = 0, x
 
           {/* Certifications */}
           <section>
-             <h2 className="text-xl font-bold mb-5 flex items-center gap-2">
-                <Award className="h-5 w-5 text-muted-foreground" />
+             <h2 className="text-lg md:text-xl font-bold mb-4 md:mb-5 flex items-center gap-2">
+                <Award className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
                 Available Certifications
              </h2>
-             <div className="bg-gradient-to-r from-gray-50 to-white border rounded-xl p-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="h-16 w-16 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-full flex items-center justify-center border-4 border-white shadow-sm">
-                        <Trophy className="h-8 w-8 text-yellow-600" />
+             <div className="bg-gradient-to-r from-gray-50 to-white border rounded-xl p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-start md:items-center gap-3 md:gap-4 flex-1">
+                    <div className="h-12 w-12 md:h-16 md:w-16 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-full flex items-center justify-center border-2 md:border-4 border-white shadow-sm shrink-0">
+                        <Trophy className="h-6 w-6 md:h-8 md:w-8 text-yellow-600" />
                     </div>
-                    <div>
-                        <h3 className="font-bold text-lg">Professional Engineer Prep</h3>
-                        <p className="text-sm text-muted-foreground">Get ready for your licensure exam with our comprehensive track.</p>
+                    <div className="flex-1">
+                        <h3 className="font-bold text-base md:text-lg">Professional Engineer Prep</h3>
+                        <p className="text-xs md:text-sm text-muted-foreground">Get ready for your licensure exam with our comprehensive track.</p>
                     </div>
                 </div>
-                <Button variant="outline">View Details</Button>
+                <Button variant="outline" className="w-full md:w-auto text-sm">View Details</Button>
              </div>
           </section>
         </div>
 
         {/* Sidebar */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 space-y-4 md:space-y-6">
            {/* Streak Card */}
            <Card className="border-none shadow-sm bg-gradient-to-br from-orange-50 to-white">
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-orange-800">Current Streak</span>
-                    <Flame className="h-5 w-5 text-orange-500 fill-orange-500" />
+                    <span className="text-xs md:text-sm font-medium text-orange-800">Current Streak</span>
+                    <Flame className="h-4 w-4 md:h-5 md:w-5 text-orange-500 fill-orange-500" />
                  </div>
                  <div className="flex items-end gap-2">
-                    <span className="text-4xl font-bold text-gray-900">{streak}</span>
-                    <span className="text-lg text-muted-foreground font-medium mb-1">{streak === 1 ? 'day' : 'days'}</span>
+                    <span className="text-3xl md:text-4xl font-bold text-gray-900">{streak}</span>
+                    <span className="text-base md:text-lg text-muted-foreground font-medium mb-1">{streak === 1 ? 'day' : 'days'}</span>
                  </div>
                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs md:text-sm text-muted-foreground">
                        {streak === 0
                          ? "Start your learning journey today!"
                          : "Keep it up! Stay active daily."}
@@ -452,19 +452,19 @@ export function FullDashboard({ onNavigate, onResumeToTopic, user, streak = 0, x
 
            {/* League Card */}
            <Card className="border-none shadow-sm bg-gradient-to-br from-purple-50 to-white">
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-purple-800">Quartz League</span>
-                    <Trophy className="h-5 w-5 text-purple-500" />
+                    <span className="text-xs md:text-sm font-medium text-purple-800">Quartz League</span>
+                    <Trophy className="h-4 w-4 md:h-5 md:w-5 text-purple-500" />
                  </div>
                  <div className="flex items-end gap-2">
-                    <span className="text-lg text-muted-foreground font-medium mb-1">Ranked</span>
-                    <span className="text-4xl font-bold text-gray-900">#42</span>
+                    <span className="text-base md:text-lg text-muted-foreground font-medium mb-1">Ranked</span>
+                    <span className="text-3xl md:text-4xl font-bold text-gray-900">#42</span>
                  </div>
-                 <p className="text-sm text-muted-foreground mt-2">
+                 <p className="text-xs md:text-sm text-muted-foreground mt-2">
                     You're in the top 15% of your class. Keep it up to get promoted!
                  </p>
-                 <Button variant="link" className="px-0 text-purple-600 h-auto mt-2">
+                 <Button variant="link" className="px-0 text-purple-600 h-auto mt-2 text-xs md:text-sm">
                     View Leaderboard <ArrowRight className="h-3 w-3 ml-1" />
                  </Button>
               </CardContent>
@@ -476,18 +476,18 @@ export function FullDashboard({ onNavigate, onResumeToTopic, user, streak = 0, x
              onClick={() => setIsMobileAppModalOpen(true)}
            >
               <div className="absolute top-0 right-0 p-10 bg-white/5 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
-              <CardContent className="p-6 relative z-10">
-                 <div className="flex justify-between items-start">
-                     <div>
-                        <h3 className="font-bold text-lg mb-1">Learn on the go!</h3>
-                        <p className="text-gray-400 text-sm mb-4">
+              <CardContent className="p-4 md:p-6 relative z-10">
+                 <div className="flex justify-between items-start gap-3">
+                     <div className="flex-1">
+                        <h3 className="font-bold text-base md:text-lg mb-1">Learn on the go!</h3>
+                        <p className="text-gray-400 text-xs md:text-sm mb-3 md:mb-4">
                             Download our mobile app to watch lectures and solve problems anywhere.
                         </p>
                         <div className="flex gap-2">
                            <Button
                              size="sm"
                              variant="secondary"
-                             className="h-8 text-xs"
+                             className="h-7 md:h-8 text-xs"
                              onClick={(e) => {
                                e.stopPropagation();
                                setIsMobileAppModalOpen(true);
@@ -498,7 +498,7 @@ export function FullDashboard({ onNavigate, onResumeToTopic, user, streak = 0, x
                            <Button
                              size="sm"
                              variant="secondary"
-                             className="h-8 text-xs"
+                             className="h-7 md:h-8 text-xs"
                              onClick={(e) => {
                                e.stopPropagation();
                                setIsMobileAppModalOpen(true);
@@ -508,22 +508,22 @@ export function FullDashboard({ onNavigate, onResumeToTopic, user, streak = 0, x
                            </Button>
                         </div>
                      </div>
-                     <Smartphone className="h-12 w-12 text-gray-700 opacity-50" />
+                     <Smartphone className="h-10 w-10 md:h-12 md:w-12 text-gray-700 opacity-50 shrink-0" />
                  </div>
               </CardContent>
            </Card>
 
            {/* Quick Stats */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 md:gap-4">
                 <Card className="bg-purple-50/50 border-none">
-                    <CardContent className="p-4 text-center">
-                        <div className="text-2xl font-bold text-purple-600">{formatXP(xp)}</div>
+                    <CardContent className="p-3 md:p-4 text-center">
+                        <div className="text-xl md:text-2xl font-bold text-purple-600">{formatXP(xp)}</div>
                         <div className="text-xs text-muted-foreground font-medium">Total XP</div>
                     </CardContent>
                 </Card>
                 <Card className="bg-green-50/50 border-none">
-                    <CardContent className="p-4 text-center">
-                        <div className="text-2xl font-bold text-green-600">{avgScore > 0 ? `${avgScore}%` : 'N/A'}</div>
+                    <CardContent className="p-3 md:p-4 text-center">
+                        <div className="text-xl md:text-2xl font-bold text-green-600">{avgScore > 0 ? `${avgScore}%` : 'N/A'}</div>
                         <div className="text-xs text-muted-foreground font-medium">Avg Score</div>
                     </CardContent>
                 </Card>
@@ -543,8 +543,8 @@ export function FullDashboard({ onNavigate, onResumeToTopic, user, streak = 0, x
 
 function DashboardSkeleton() {
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <div className="container mx-auto p-3 md:p-6 max-w-7xl">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
         <div className="lg:col-span-8 space-y-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">

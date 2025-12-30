@@ -32,7 +32,6 @@ import {
   TableRow,
 } from "../ui/table";
 import { DollarSign, Tag, Percent, Plus, Trash2, Save, Loader2, Settings } from "lucide-react";
-import { supabase } from "../../utils/supabase/client";
 
 interface PriceManagerTabProps {
   courseData: Node[];
@@ -80,17 +79,12 @@ export function PriceManagerTab({ courseData }: PriceManagerTabProps) {
     async function loadPricingConfig() {
       setIsLoadingConfig(true);
       try {
-        const { data, error } = await supabase
-          .from('pricing_config')
-          .select('*')
-          .eq('is_active', true);
+        const data = await db.getPricingConfig();
 
-        if (error) throw error;
-
-        if (data) {
+        if (data && data.length > 0) {
           setPricingConfig(data);
-          const subjectPriceConfig = data.find(c => c.config_key === 'subject_price');
-          const yearPriceConfig = data.find(c => c.config_key === 'year_price');
+          const subjectPriceConfig = data.find((c: any) => c.config_key === 'subject_price');
+          const yearPriceConfig = data.find((c: any) => c.config_key === 'year_price');
 
           if (subjectPriceConfig) setSubjectPrice(subjectPriceConfig.config_value.toString());
           if (yearPriceConfig) setYearPrice(yearPriceConfig.config_value.toString());
@@ -147,20 +141,16 @@ export function PriceManagerTab({ courseData }: PriceManagerTabProps) {
         throw new Error("Invalid year price");
       }
 
-      // Update both pricing configs
-      const { error: subjectError } = await supabase
-        .from('pricing_config')
-        .update({ config_value: subjectPriceValue })
-        .eq('config_key', 'subject_price');
+      // Update both pricing configs using database function
+      const subjectSuccess = await db.updatePricingConfig('subject_price', subjectPriceValue);
+      if (!subjectSuccess) {
+        throw new Error("Failed to update subject price");
+      }
 
-      if (subjectError) throw subjectError;
-
-      const { error: yearError } = await supabase
-        .from('pricing_config')
-        .update({ config_value: yearPriceValue })
-        .eq('config_key', 'year_price');
-
-      if (yearError) throw yearError;
+      const yearSuccess = await db.updatePricingConfig('year_price', yearPriceValue);
+      if (!yearSuccess) {
+        throw new Error("Failed to update year price");
+      }
 
       toast.success("Global pricing updated successfully!");
     } catch (error: any) {

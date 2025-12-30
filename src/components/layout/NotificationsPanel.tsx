@@ -141,7 +141,7 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        className="w-[calc(100vw-2rem)] md:w-96 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+        className="w-[calc(100vw-50rem)] md:w-96 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
         align="end"
         sideOffset={8}
       >

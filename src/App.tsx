@@ -11,7 +11,6 @@ import { Footer } from "./components/layout/Footer";
 import { ProfileSettings } from "./components/settings/ProfileSettings";
 import { NotificationsPanel } from "./components/layout/NotificationsPanel";
 import { PaymentModal, PurchasedAccess } from "./components/student/PaymentModal";
-import { XPHistory } from "./components/student/XPHistory";
 import { AboutUs } from "./components/pages/AboutUs";
 import { ContactUs } from "./components/pages/ContactUs";
 import { Pricing } from "./components/pages/Pricing";
@@ -364,6 +363,8 @@ export default function App() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔐 Auth state change:', event);
+
       if (event === 'SIGNED_IN' && session?.user) {
         // Clean up OAuth hash from URL immediately after sign in
         if (window.location.hash && window.location.hash.includes('access_token')) {
@@ -434,12 +435,18 @@ export default function App() {
           setNeedsOnboarding(true);
           setIsEnrollOpen(true);
         }
+      } else if (event === 'TOKEN_REFRESHED') {
+        // Token was refreshed - session is still valid, just log it
+        console.log('✅ Token refreshed successfully');
       } else if (event === 'SIGNED_OUT') {
+        console.log('👋 User signed out');
         setUser(null);
         setNeedsOnboarding(false);
         setUserStats({ streak: 0, xp: 0, maxStreak: 0, avgScore: 0 });
         setContinueLearningData(null);
         navigate('/');
+      } else if (event === 'USER_UPDATED') {
+        console.log('👤 User data updated');
       }
     });
 
@@ -453,6 +460,32 @@ export default function App() {
     window.addEventListener('theatre-mode-change', handleTheatreChange as EventListener);
     return () => window.removeEventListener('theatre-mode-change', handleTheatreChange as EventListener);
   }, []);
+
+  // Handle authentication errors (401/JWT expired) - auto logout
+  useEffect(() => {
+    const handleAuthError = async (e: CustomEvent) => {
+      console.error('🔐 Authentication error detected:', e.detail);
+      console.log('🚪 Automatically logging out user...');
+
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+
+      // Clear app state
+      setUser(null);
+      setNeedsOnboarding(false);
+      setUserStats({ streak: 0, xp: 0, maxStreak: 0, avgScore: 0 });
+      setContinueLearningData(null);
+
+      // Show a message to user
+      alert('Your session has expired. Please log in again.');
+
+      // Navigate to home
+      navigate('/');
+    };
+
+    window.addEventListener('auth-error', handleAuthError as EventListener);
+    return () => window.removeEventListener('auth-error', handleAuthError as EventListener);
+  }, [navigate]);
 
   const handleEnrollmentComplete = async (userData: any) => {
     setUser(userData);
@@ -535,9 +568,7 @@ export default function App() {
   };
 
   const handleXPClick = () => {
-    if (user) {
-      navigate('/xp-history');
-    }
+    // XP display only - no navigation
   };
 
   const handlePaymentSuccess = async (purchasedAccess: PurchasedAccess) => {
@@ -715,8 +746,25 @@ export default function App() {
                 />
 
                 {/* Courses route - accessible to everyone (logged in or not) - only shows active courses */}
+                {/* Supports hierarchical URLs: /courses/:degreeSlug/:subjectSlug/:chapterSlug/:topicSlug */}
                 <Route
                   path="/courses"
+                  element={<StudentDashboard courseData={studentCourseData} user={user} streak={userStats.streak} xp={userStats.xp} maxStreak={userStats.maxStreak} avgScore={userStats.avgScore} continueLearning={continueLearningData} onXPUpdate={refreshUserStats} />}
+                />
+                <Route
+                  path="/courses/:degreeSlug"
+                  element={<StudentDashboard courseData={studentCourseData} user={user} streak={userStats.streak} xp={userStats.xp} maxStreak={userStats.maxStreak} avgScore={userStats.avgScore} continueLearning={continueLearningData} onXPUpdate={refreshUserStats} />}
+                />
+                <Route
+                  path="/courses/:degreeSlug/:subjectSlug"
+                  element={<StudentDashboard courseData={studentCourseData} user={user} streak={userStats.streak} xp={userStats.xp} maxStreak={userStats.maxStreak} avgScore={userStats.avgScore} continueLearning={continueLearningData} onXPUpdate={refreshUserStats} />}
+                />
+                <Route
+                  path="/courses/:degreeSlug/:subjectSlug/:chapterSlug"
+                  element={<StudentDashboard courseData={studentCourseData} user={user} streak={userStats.streak} xp={userStats.xp} maxStreak={userStats.maxStreak} avgScore={userStats.avgScore} continueLearning={continueLearningData} onXPUpdate={refreshUserStats} />}
+                />
+                <Route
+                  path="/courses/:degreeSlug/:subjectSlug/:chapterSlug/:topicSlug"
                   element={<StudentDashboard courseData={studentCourseData} user={user} streak={userStats.streak} xp={userStats.xp} maxStreak={userStats.maxStreak} avgScore={userStats.avgScore} continueLearning={continueLearningData} onXPUpdate={refreshUserStats} />}
                 />
 
@@ -727,18 +775,6 @@ export default function App() {
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/terms-conditions" element={<TermsConditions />} />
                 <Route path="/refund-policy" element={<RefundPolicy />} />
-
-                {/* XP History - protected (requires login) */}
-                <Route
-                  path="/xp-history"
-                  element={
-                    user ? (
-                      <XPHistory userId={user.id} />
-                    ) : (
-                      <Navigate to="/courses" replace />
-                    )
-                  }
-                />
 
                 {/* Admin route - protected (only for manishkalyan141@gmail.com) */}
                 <Route

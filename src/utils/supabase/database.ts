@@ -1,5 +1,28 @@
 import { supabase } from './client';
 import { Node, NodeType } from '../sharedData';
+import { slugify } from '../slugify';
+
+// ========================================
+// AUTH ERROR HANDLER
+// ========================================
+
+/**
+ * Handles authentication errors (401/JWT expired) by triggering automatic logout
+ */
+export function handle401Error(error: any) {
+  const isAuthError =
+    error?.status === 401 ||
+    error?.code === 'PGRST301' ||
+    error?.code === 'PGRST302' ||
+    error?.code === 'PGRST303' || // JWT expired
+    (typeof error === 'object' && error?.message && error.message.includes('JWT'));
+
+  if (isAuthError) {
+    console.warn('🔐 Authentication error detected - triggering logout');
+    // Dispatch custom event that App.tsx will listen to
+    window.dispatchEvent(new CustomEvent('auth-error', { detail: error }));
+  }
+}
 
 // ========================================
 // HIERARCHY NODES - CRUD OPERATIONS
@@ -238,6 +261,7 @@ export async function fetchDegrees(): Promise<Node[]> {
     const mapped = (degrees || []).map((d: any) => ({
       id: d.id,
       title: d.title,
+      slug: slugify(d.title), // Generate URL-friendly slug
       type: d.type as NodeType,
       iconUrl: d.icon_url,
       isActive: d.is_active,
@@ -279,6 +303,7 @@ export async function fetchYearsForDegree(degreeId: string): Promise<Node[]> {
     return (years || []).map((y: any) => ({
       id: y.id,
       title: y.title,
+      slug: slugify(y.title), // Generate URL-friendly slug
       type: y.type as NodeType,
       iconUrl: y.icon_url,
       isActive: y.is_active,
@@ -310,7 +335,13 @@ export async function fetchSubjectsForYear(yearId: string, userId?: string): Pro
       { headers }
     );
 
-    if (!subjectsResponse.ok) throw new Error(`HTTP error! status: ${subjectsResponse.status}`);
+    if (!subjectsResponse.ok) {
+      // Handle auth errors
+      if (subjectsResponse.status === 401) {
+        handle401Error({ status: subjectsResponse.status });
+      }
+      throw new Error(`HTTP error! status: ${subjectsResponse.status}`);
+    }
 
     const subjects = await subjectsResponse.json();
 
@@ -349,6 +380,7 @@ export async function fetchSubjectsForYear(yearId: string, userId?: string): Pro
     return subjects.map((s: any) => ({
       id: s.id,
       title: s.title,
+      slug: slugify(s.title), // Generate URL-friendly slug
       type: s.type as NodeType,
       iconUrl: s.icon_url,
       isActive: s.is_active,
@@ -360,6 +392,7 @@ export async function fetchSubjectsForYear(yearId: string, userId?: string): Pro
     }));
   } catch (error) {
     console.error('❌ Error fetching subjects:', error);
+    handle401Error(error);
     return [];
   }
 }
@@ -432,6 +465,7 @@ export async function fetchChaptersForSubject(subjectId: string): Promise<Node[]
       const node: Node = {
         id: c.id,
         title: c.title,
+        slug: slugify(c.title), // Generate URL-friendly slug
         type: c.type as NodeType,
         iconUrl: c.icon_url,
         isActive: c.is_active,
@@ -495,6 +529,7 @@ export async function fetchTopicsForChapter(chapterId: string): Promise<Node[]> 
       const node: Node = {
         id: t.id,
         title: t.title,
+        slug: slugify(t.title), // Generate URL-friendly slug
         type: t.type as NodeType,
         iconUrl: t.icon_url,
         isActive: t.is_active,
@@ -915,29 +950,47 @@ export async function upsertContentAssets(nodeId: string, content: {
   try {
     console.log('🔄 Upserting content assets for node:', nodeId, content);
 
-    const { data, error } = await supabase
-      .from('content_assets')
-      .upsert({
-        node_id: nodeId,
-        video_url: content.videoUrl,
-        video_url_hindi: content.videoUrlHindi,
-        audio_url: content.audioUrl,
-        audio_url_hindi: content.audioUrlHindi,
-        pdf_url: content.pdfUrl,
-        duration: content.duration,
-        is_premium: content.isPremium ?? false,
-        interactive_content: content.interactiveContent,
-      }, {
-        onConflict: 'node_id'
-      })
-      .select();
-
-    if (error) {
-      console.error('❌ Supabase error:', error);
-      throw error;
+    const accessToken = getAccessTokenFromStorage();
+    if (!accessToken) {
+      console.error('❌ No access token found - user not authenticated');
+      return false;
     }
 
-    console.log('✅ Content assets upserted successfully:', data);
+    const payload = {
+      node_id: nodeId,
+      video_url: content.videoUrl || null,
+      video_url_hindi: content.videoUrlHindi || null,
+      audio_url: content.audioUrl || null,
+      audio_url_hindi: content.audioUrlHindi || null,
+      pdf_url: content.pdfUrl || null,
+      duration: content.duration || null,
+      is_premium: content.isPremium ?? false,
+      interactive_content: content.interactiveContent || null,
+    };
+
+    console.log('📦 Payload to upsert:', payload);
+
+    const response = await fetch(
+      `${supabase.supabaseUrl}/rest/v1/content_assets?on_conflict=node_id`,
+      {
+        method: 'POST',
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=minimal',
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ HTTP error:', response.status, errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    console.log('✅ Content assets upserted successfully');
     return true;
   } catch (error: any) {
     console.error('❌ Error upserting content assets:', {
@@ -1026,6 +1079,37 @@ export async function upsertAssessment(chapterId: string, questions: {
 // ========================================
 
 /**
+ * Get global pricing configuration
+ */
+export async function getPricingConfig() {
+  try {
+    console.log('📊 Fetching pricing config...');
+
+    const response = await fetch(
+      `${supabase.supabaseUrl}/rest/v1/pricing_config?is_active=eq.true&select=*`,
+      {
+        method: 'GET',
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ Pricing config loaded:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ Error fetching pricing config:', error);
+    return [];
+  }
+}
+
+/**
  * Get pricing for a year node
  */
 export async function getPricing(yearNodeId: string) {
@@ -1045,24 +1129,97 @@ export async function getPricing(yearNodeId: string) {
 }
 
 /**
+ * Update global pricing configuration
+ */
+export async function updatePricingConfig(configKey: string, value: number): Promise<boolean> {
+  try {
+    console.log('🔄 Updating pricing config:', configKey, value);
+
+    const accessToken = getAccessTokenFromStorage();
+    if (!accessToken) {
+      console.error('❌ No access token found - user not authenticated');
+      return false;
+    }
+
+    const response = await fetch(
+      `${supabase.supabaseUrl}/rest/v1/pricing_config?config_key=eq.${configKey}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({ config_value: value }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ HTTP error:', response.status, errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    console.log('✅ Pricing config updated successfully');
+    return true;
+  } catch (error: any) {
+    console.error('❌ Error updating pricing config:', {
+      message: error?.message,
+      details: error?.details,
+    });
+    return false;
+  }
+}
+
+/**
  * Update pricing for a year node
  */
 export async function updatePricing(yearNodeId: string, price: number, currency: string = 'USD'): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('pricing')
-      .upsert({
-        year_node_id: yearNodeId,
-        price,
-        currency,
-      }, {
-        onConflict: 'year_node_id'
-      });
+    console.log('🔄 Updating pricing for year:', yearNodeId, { price, currency });
 
-    if (error) throw error;
+    const accessToken = getAccessTokenFromStorage();
+    if (!accessToken) {
+      console.error('❌ No access token found - user not authenticated');
+      return false;
+    }
+
+    const payload = {
+      year_node_id: yearNodeId,
+      price,
+      currency,
+    };
+
+    console.log('📦 Pricing payload:', payload);
+
+    const response = await fetch(
+      `${supabase.supabaseUrl}/rest/v1/pricing?on_conflict=year_node_id`,
+      {
+        method: 'POST',
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=minimal',
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ HTTP error:', response.status, errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    console.log('✅ Pricing updated successfully');
     return true;
-  } catch (error) {
-    console.error('Error updating pricing:', error);
+  } catch (error: any) {
+    console.error('❌ Error updating pricing:', {
+      message: error?.message,
+      details: error?.details,
+    });
     return false;
   }
 }
@@ -2629,6 +2786,17 @@ export async function getContinueLearning(
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ Failed to fetch continue learning:', errorText);
+
+      // Handle auth errors
+      if (response.status === 401) {
+        try {
+          const errorObj = JSON.parse(errorText);
+          handle401Error({ status: response.status, ...errorObj });
+        } catch {
+          handle401Error({ status: response.status, message: errorText });
+        }
+      }
+
       return null;
     }
 
@@ -2639,6 +2807,7 @@ export async function getContinueLearning(
     return data && data.length > 0 ? data[0] : null;
   } catch (error) {
     console.error('❌ Error fetching continue learning:', error);
+    handle401Error(error);
     return null;
   }
 }

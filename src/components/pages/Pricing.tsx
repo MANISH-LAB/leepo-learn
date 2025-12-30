@@ -76,13 +76,18 @@ export function Pricing() {
               <Zap className="h-6 w-6 text-yellow-400" />
             </div>
             <h2 className="text-3xl font-black mb-2">Per Subject</h2>
-            <div className="mb-6">
+            <div className="mb-2">
               <Price
                 amountUSD={5}
                 className="text-5xl font-black"
                 convertedClassName="text-sm"
               />
-              <span className="text-muted-foreground font-medium ml-1">/subject</span>
+              <span className="text-muted-foreground font-medium ml-1">/year</span>
+            </div>
+            <div className="mb-6 bg-blue-200 px-3 py-2 rounded-lg border-2 border-blue-400 inline-block">
+              <p className="text-sm font-black text-blue-900">
+                ✨ Just $0.42/month
+              </p>
             </div>
             <ul className="space-y-3 mb-8 flex-grow">
               <li className="flex items-start gap-2">
@@ -103,7 +108,7 @@ export function Pricing() {
               </li>
               <li className="flex items-start gap-2">
                 <Check className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                <span className="text-slate-700">Lifetime access</span>
+                <span className="text-slate-700">1 year access</span>
               </li>
             </ul>
             <button
@@ -125,13 +130,18 @@ export function Pricing() {
               <Crown className="h-6 w-6 text-white" />
             </div>
             <h2 className="text-3xl font-black mb-2">Full Year</h2>
-            <div className="mb-6">
+            <div className="mb-2">
               <Price
                 amountUSD={30}
                 className="text-5xl font-black"
                 convertedClassName="text-sm"
               />
               <span className="text-muted-foreground font-medium ml-1">/year</span>
+            </div>
+            <div className="mb-6 bg-purple-200 px-3 py-2 rounded-lg border-2 border-purple-400 inline-block">
+              <p className="text-sm font-black text-purple-900">
+                ✨ Only $2.50/month
+              </p>
             </div>
             <ul className="space-y-3 mb-8 flex-grow">
               <li className="flex items-start gap-2">
