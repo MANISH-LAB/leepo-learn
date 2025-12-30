@@ -70,6 +70,8 @@ import {
   XCircle,
   Sparkles,
   Trash2,
+  Video,
+  Music2,
 } from "lucide-react";
 import { Textarea } from "../ui/textarea";
 import { Separator } from "../ui/separator";
@@ -418,6 +420,11 @@ export function CourseView({
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState("1");
   const [isVideoCompleted, setIsVideoCompleted] = useState(false);
+
+  // Audio Player State
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [audioProgress, setAudioProgress] = useState(0);
   
   // Modal State
   const [isPdfOpen, setIsPdfOpen] = useState(false);
@@ -820,6 +827,80 @@ export function CourseView({
         if (wasPlaying) audioRef.current.play().catch(() => {});
     }
   }, [language]);
+
+  // Audio time update listener
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleTimeUpdate = () => {
+      setAudioCurrentTime(audio.currentTime);
+      setAudioProgress((audio.currentTime / audio.duration) * 100 || 0);
+    };
+
+    const handleLoadedMetadata = () => {
+      setAudioDuration(audio.duration);
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setAudioProgress(0);
+      setAudioCurrentTime(0);
+    };
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, []);
+
+  // Media Session API for background playback (mobile)
+  useEffect(() => {
+    if ('mediaSession' in navigator && activeTopic && mediaMode === 'audio') {
+      const audioUrl = language === 'hi' && activeTopic.audioUrlHindi
+        ? activeTopic.audioUrlHindi
+        : activeTopic.audioUrl;
+
+      if (audioUrl) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: activeTopic.title,
+          artist: selectedChapter.title,
+          album: 'Course Audio',
+          artwork: [
+            { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+            { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+          ]
+        });
+
+        navigator.mediaSession.setActionHandler('play', () => {
+          audioRef.current?.play();
+          setIsPlaying(true);
+        });
+
+        navigator.mediaSession.setActionHandler('pause', () => {
+          audioRef.current?.pause();
+          setIsPlaying(false);
+        });
+
+        navigator.mediaSession.setActionHandler('seekbackward', () => {
+          if (audioRef.current) {
+            audioRef.current.currentTime = Math.max(audioRef.current.currentTime - 10, 0);
+          }
+        });
+
+        navigator.mediaSession.setActionHandler('seekforward', () => {
+          if (audioRef.current) {
+            audioRef.current.currentTime = Math.min(audioRef.current.currentTime + 10, audioRef.current.duration);
+          }
+        });
+      }
+    }
+  }, [activeTopic, mediaMode, language, selectedChapter]);
 
   const togglePlay = () => {
     const media = mediaMode === 'video' ? videoRef.current : audioRef.current;
@@ -1433,33 +1514,81 @@ export function CourseView({
                         {activeTopic?.audioUrl ? (
                             <>
                                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/20 to-purple-900/20 z-0" />
-                                <div className="z-10 flex flex-col items-center gap-4 animate-in zoom-in-50 duration-500">
-                                    <div className="h-32 w-32 rounded-full bg-primary/20 flex items-center justify-center animate-pulse">
-                                        <Headphones className="h-16 w-16 text-primary" />
+
+                                {/* Audio Visualizer */}
+                                <div className="z-10 flex flex-col items-center gap-6 animate-in zoom-in-50 duration-500">
+                                    <div className="relative">
+                                        {/* Pulsing background */}
+                                        <div className={`h-40 w-40 rounded-full bg-primary/20 flex items-center justify-center ${isPlaying ? 'animate-pulse' : ''}`}>
+                                            <Headphones className="h-20 w-20 text-primary" />
+                                        </div>
+
+                                        {/* Animated audio bars */}
+                                        {isPlaying && (
+                                            <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 flex items-end gap-1.5 h-16">
+                                                {[...Array(7)].map((_, i) => (
+                                                    <div
+                                                        key={i}
+                                                        className="w-2 bg-primary rounded-full"
+                                                        style={{
+                                                            height: '100%',
+                                                            animation: `audioBar ${0.5 + Math.random() * 0.5}s ease-in-out infinite alternate`,
+                                                            animationDelay: `${i * 0.1}s`,
+                                                        }}
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="text-center">
+
+                                    <div className="text-center mt-8">
                                         <h3 className="font-semibold text-white text-2xl drop-shadow-md">{activeTopic.title}</h3>
                                         <p className="text-zinc-400 text-lg">Audio Lesson</p>
                                     </div>
                                 </div>
-                                <audio 
+
+                                <audio
                                     ref={audioRef}
                                     src={language === 'hi' && activeTopic.audioUrlHindi ? activeTopic.audioUrlHindi : activeTopic.audioUrl}
                                     onEnded={() => setIsPlaying(false)}
                                     onPlay={() => setIsPlaying(true)}
                                     onPause={() => setIsPlaying(false)}
                                 />
-                                
-                                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-center gap-6 text-white z-20">
-                                     <Button variant="ghost" size="icon" onClick={togglePlay} className="text-white hover:bg-white/20">
-                                       {isPlaying ? <PauseCircle className="h-8 w-8" /> : <PlayCircle className="h-8 w-8" />}
-                                     </Button>
-                                      <div className="flex items-center gap-2 group/volume">
-                                        <Button variant="ghost" size="icon" onClick={toggleMute} className="text-white hover:bg-white/20">
-                                          {isMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
+
+                                {/* Audio Controls */}
+                                <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 bg-gradient-to-t from-black/95 via-black/60 to-transparent z-20">
+                                    {/* Progress Bar */}
+                                    <div className="mb-4">
+                                        <Slider
+                                            value={[audioCurrentTime]}
+                                            max={audioDuration || 100}
+                                            step={0.1}
+                                            onValueChange={(value) => {
+                                                if (audioRef.current) {
+                                                    audioRef.current.currentTime = value[0];
+                                                    setAudioCurrentTime(value[0]);
+                                                }
+                                            }}
+                                            className="w-full cursor-pointer"
+                                        />
+                                        <div className="flex justify-between text-xs text-zinc-400 mt-1">
+                                            <span>{formatTime(audioCurrentTime)}</span>
+                                            <span>{formatTime(audioDuration)}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Playback Controls */}
+                                    <div className="flex items-center gap-3 md:gap-6 text-white">
+                                        <Button variant="ghost" size="icon" onClick={togglePlay} className="text-white hover:bg-white/20 shrink-0">
+                                            {isPlaying ? <PauseCircle className="h-8 w-8" /> : <PlayCircle className="h-8 w-8" />}
                                         </Button>
-                                        <Slider value={isMuted ? [0] : volume} max={1} step={0.1} onValueChange={handleVolumeChange} className="w-32" />
-                                      </div>
+                                        <div className="flex items-center gap-2 flex-1">
+                                            <Button variant="ghost" size="icon" onClick={toggleMute} className="text-white hover:bg-white/20 shrink-0">
+                                                {isMuted ? <VolumeX className="h-5 w-5 md:h-6 md:w-6" /> : <Volume2 className="h-5 w-5 md:h-6 md:w-6" />}
+                                            </Button>
+                                            <Slider value={isMuted ? [0] : volume} max={1} step={0.1} onValueChange={handleVolumeChange} className="w-24 md:w-32" />
+                                        </div>
+                                    </div>
                                 </div>
                             </>
                         ) : (
@@ -1530,6 +1659,31 @@ export function CourseView({
                         </div>
                       </DialogContent>
                     </Dialog>
+
+                    {/* Video/Audio Toggle Button */}
+                    {((language === 'hi' && activeTopic.videoUrlHindi && activeTopic.audioUrlHindi) ||
+                      (language === 'en' && activeTopic.videoUrl && activeTopic.audioUrl)) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setIsPlaying(false);
+                          setMediaMode(mediaMode === 'video' ? 'audio' : 'video');
+                        }}
+                      >
+                        {mediaMode === 'video' ? (
+                          <>
+                            <Music2 className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                            {!isMobile && ' Audio'}
+                          </>
+                        ) : (
+                          <>
+                            <Video className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                            {!isMobile && ' Video'}
+                          </>
+                        )}
+                      </Button>
+                    )}
 
                     <Dialog open={isInfographicOpen} onOpenChange={setIsInfographicOpen}>
                       <DialogTrigger asChild>
@@ -1959,22 +2113,82 @@ export function CourseView({
                            {activeTopic.audioUrl ? (
                                <>
                                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/20 to-purple-900/20 z-0" />
+
+                                   {/* Audio Visualizer */}
                                    <div className="z-10 flex flex-col items-center gap-4 animate-in zoom-in-50 duration-500">
-                                       <div className="h-24 w-24 rounded-full bg-primary/20 flex items-center justify-center animate-pulse">
-                                           <Headphones className="h-12 w-12 text-primary" />
+                                       <div className="relative">
+                                           {/* Pulsing background */}
+                                           <div className={`h-24 w-24 rounded-full bg-primary/20 flex items-center justify-center ${isPlaying ? 'animate-pulse' : ''}`}>
+                                               <Headphones className="h-12 w-12 text-primary" />
+                                           </div>
+
+                                           {/* Animated audio bars */}
+                                           {isPlaying && (
+                                               <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 flex items-end gap-1 h-12">
+                                                   {[...Array(5)].map((_, i) => (
+                                                       <div
+                                                           key={i}
+                                                           className="w-1.5 bg-primary rounded-full"
+                                                           style={{
+                                                               height: '100%',
+                                                               animation: `audioBar ${0.5 + Math.random() * 0.5}s ease-in-out infinite alternate`,
+                                                               animationDelay: `${i * 0.1}s`,
+                                                           }}
+                                                       />
+                                                   ))}
+                                               </div>
+                                           )}
                                        </div>
-                                       <div className="text-center">
+
+                                       <div className="text-center mt-4">
                                            <h3 className="font-semibold text-white text-lg drop-shadow-md">{activeTopic.title}</h3>
                                            <p className="text-zinc-400 text-sm">Audio Lesson</p>
                                        </div>
                                    </div>
-                                   <audio 
+
+                                   <audio
                                        ref={audioRef}
                                        src={activeTopic.audioUrl}
                                        onEnded={() => setIsPlaying(false)}
                                        onPlay={() => setIsPlaying(true)}
                                        onPause={() => setIsPlaying(false)}
                                    />
+
+                                   {/* Audio Controls (Compact) */}
+                                   <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/95 via-black/60 to-transparent z-20">
+                                       {/* Progress Bar */}
+                                       <div className="mb-2">
+                                           <Slider
+                                               value={[audioCurrentTime]}
+                                               max={audioDuration || 100}
+                                               step={0.1}
+                                               onValueChange={(value) => {
+                                                   if (audioRef.current) {
+                                                       audioRef.current.currentTime = value[0];
+                                                       setAudioCurrentTime(value[0]);
+                                                   }
+                                               }}
+                                               className="w-full cursor-pointer"
+                                           />
+                                           <div className="flex justify-between text-[10px] text-zinc-400 mt-0.5">
+                                               <span>{formatTime(audioCurrentTime)}</span>
+                                               <span>{formatTime(audioDuration)}</span>
+                                           </div>
+                                       </div>
+
+                                       {/* Playback Controls */}
+                                       <div className="flex items-center gap-2 text-white">
+                                           <Button variant="ghost" size="icon" onClick={togglePlay} className="text-white hover:bg-white/20 h-8 w-8 shrink-0">
+                                               {isPlaying ? <PauseCircle className="h-6 w-6" /> : <PlayCircle className="h-6 w-6" />}
+                                           </Button>
+                                           <div className="flex items-center gap-1 flex-1">
+                                               <Button variant="ghost" size="icon" onClick={toggleMute} className="text-white hover:bg-white/20 h-8 w-8 shrink-0">
+                                                   {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                                               </Button>
+                                               <Slider value={isMuted ? [0] : volume} max={1} step={0.1} onValueChange={handleVolumeChange} className="w-20" />
+                                           </div>
+                                       </div>
+                                   </div>
                                </>
                            ) : (
                                <div className="text-zinc-500">Audio source unavailable</div>
@@ -2015,6 +2229,30 @@ export function CourseView({
                          </div>
                        </DialogContent>
                      </Dialog>
+
+                     {/* Video/Audio Toggle Button */}
+                     {((language === 'hi' && activeTopic.videoUrlHindi && activeTopic.audioUrlHindi) ||
+                       (language === 'en' && activeTopic.videoUrl && activeTopic.audioUrl)) && (
+                       <Button
+                         variant="outline"
+                         onClick={() => {
+                           setIsPlaying(false);
+                           setMediaMode(mediaMode === 'video' ? 'audio' : 'video');
+                         }}
+                       >
+                         {mediaMode === 'video' ? (
+                           <>
+                             <Music2 className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                             {!isMobile && ' Audio'}
+                           </>
+                         ) : (
+                           <>
+                             <Video className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                             {!isMobile && ' Video'}
+                           </>
+                         )}
+                       </Button>
+                     )}
 
                      <Dialog open={isInfographicOpen} onOpenChange={setIsInfographicOpen}>
                        <DialogTrigger asChild>
