@@ -3012,3 +3012,65 @@ export async function getUserAccessibleContent(userId: string): Promise<{
     return { subjects: [], years: [] };
   }
 }
+
+/**
+ * Get all purchased subject nodes for a user (for display in Accessible Subjects section)
+ */
+export async function getUserPurchasedSubjects(userId: string): Promise<Node[]> {
+  try {
+    console.log('📚 Fetching purchased subjects for user:', userId);
+
+    // Get accessible content IDs
+    const { subjects: subjectIds, years: yearIds } = await getUserAccessibleContent(userId);
+
+    // Collect all subject IDs (from direct purchases and year purchases)
+    const allSubjectIds = new Set<string>(subjectIds);
+
+    // For each purchased year, fetch all subjects under that year
+    if (yearIds.length > 0) {
+      const { data: yearSubjects, error } = await supabase
+        .from('hierarchy_nodes')
+        .select('id')
+        .eq('type', 'SUBJECT')
+        .in('parent_id', yearIds);
+
+      if (!error && yearSubjects) {
+        yearSubjects.forEach(subject => allSubjectIds.add(subject.id));
+      }
+    }
+
+    // If no subjects found, return empty array
+    if (allSubjectIds.size === 0) {
+      console.log('📚 No purchased subjects found');
+      return [];
+    }
+
+    // Fetch the actual subject nodes with their details
+    const { data: subjects, error } = await supabase
+      .from('hierarchy_nodes')
+      .select('*')
+      .eq('type', 'SUBJECT')
+      .in('id', Array.from(allSubjectIds))
+      .order('order_index', { ascending: true });
+
+    if (error) {
+      console.error('❌ Error fetching subject nodes:', error);
+      return [];
+    }
+
+    // Convert to Node format
+    const subjectNodes: Node[] = (subjects || []).map(node => ({
+      id: node.id,
+      title: node.title,
+      type: node.type as NodeType,
+      iconUrl: node.icon_url,
+      children: [],
+    }));
+
+    console.log('✅ Purchased subjects fetched:', subjectNodes.length);
+    return subjectNodes;
+  } catch (error) {
+    console.error('❌ Error in getUserPurchasedSubjects:', error);
+    return [];
+  }
+}

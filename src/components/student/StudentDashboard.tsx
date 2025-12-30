@@ -24,6 +24,7 @@ export function StudentDashboard({ courseData, user, streak = 0, xp = 0, maxStre
   const [searchParams, setSearchParams] = useSearchParams();
   const [view, setView] = useState<'dashboard' | 'courses'>('courses'); // Default to courses view
   const [resumeTarget, setResumeTarget] = useState<{ subjectId: string; chapterId: string; topicId: string } | null>(null);
+  const [targetSubjectId, setTargetSubjectId] = useState<string | null>(null);
 
   console.log('📱 StudentDashboard props:', { user: user?.email, streak, xp, avgScore });
 
@@ -45,6 +46,13 @@ export function StudentDashboard({ courseData, user, streak = 0, xp = 0, maxStre
             console.log('🔀 Navigating to courses (no target)');
             setView('courses');
             setSearchParams({}); // Clear URL params
+          } else if (path.startsWith('/subject/')) {
+            // Handle subject navigation from accessible subjects
+            const subjectId = path.replace('/subject/', '');
+            console.log('🔀 Navigating to subject:', subjectId);
+            setTargetSubjectId(subjectId);
+            setView('courses');
+            setSearchParams({}); // Clear URL params
           }
         }}
         user={user}
@@ -64,7 +72,7 @@ export function StudentDashboard({ courseData, user, streak = 0, xp = 0, maxStre
   }
 
   // Show course browser by default
-  console.log('🎬 Rendering CourseBrowser with resumeTarget:', resumeTarget);
+  console.log('🎬 Rendering CourseBrowser with resumeTarget:', resumeTarget, 'targetSubjectId:', targetSubjectId);
   return (
     <CourseBrowser
       courseData={courseData}
@@ -83,6 +91,11 @@ export function StudentDashboard({ courseData, user, streak = 0, xp = 0, maxStre
       onAutoNavigateComplete={() => {
         console.log('✅ Auto-navigation complete, clearing target');
         setResumeTarget(null);
+      }}
+      targetSubjectId={targetSubjectId}
+      onSubjectNavigationComplete={() => {
+        console.log('✅ Subject navigation complete, clearing target');
+        setTargetSubjectId(null);
       }}
     />
   );

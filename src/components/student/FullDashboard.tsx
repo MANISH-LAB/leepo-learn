@@ -189,7 +189,8 @@ export function FullDashboard({ onNavigate, onResumeToTopic, user, streak = 0, x
   };
 
   const handleContinueSubject = (subjectId: string) => {
-    onNavigate(`/learn/${subjectId}`);
+    console.log('🎯 Opening subject:', subjectId);
+    onNavigate(`/subject/${subjectId}`);
   };
 
   console.log('🔍 Checking loading state before render:', loading);
@@ -293,66 +294,34 @@ export function FullDashboard({ onNavigate, onResumeToTopic, user, streak = 0, x
             </h2>
 
             {subjects.length === 0 ? (
-              <Card className="p-8 text-center">
-                <p className="text-muted-foreground">
+              <Card className="p-8 text-center border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <p className="text-muted-foreground font-medium">
                   No subjects available. Start exploring courses to begin your learning journey!
                 </p>
                 <Button
-                  className="mt-4"
+                  className="mt-4 bg-black text-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] font-bold"
                   onClick={() => onNavigate('courses')}
                 >
                   Browse Courses
                 </Button>
               </Card>
             ) : (
-              <div className="grid md:grid-cols-2 gap-6">
-                {subjects.slice(0, 4).map((subject) => (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {subjects.map((subject) => (
                   <Card
                     key={subject.subject_id}
-                    className="hover:shadow-lg transition-all hover:scale-105 cursor-pointer group"
+                    className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all cursor-pointer group bg-gradient-to-br from-blue-50 to-purple-50"
                     onClick={() => handleContinueSubject(subject.subject_id)}
                   >
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <h3 className="font-bold text-lg group-hover:text-blue-600 transition-colors line-clamp-1">
-                            {subject.subject_title}
-                          </h3>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {subject.degree_title}
-                          </p>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-center mb-3">
+                        <div className="h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center border-2 border-black">
+                          <BookOpen className="h-6 w-6 text-white" />
                         </div>
-                        <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors shrink-0" />
                       </div>
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Progress</span>
-                          <span className="font-semibold">
-                            {calculateProgressPercentage(subject.completed_topics, subject.total_topics)}%
-                          </span>
-                        </div>
-                        <Progress
-                          value={calculateProgressPercentage(subject.completed_topics, subject.total_topics)}
-                          className="h-2"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          {subject.completed_topics} / {subject.total_topics} topics completed
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                        <span className="text-xs text-muted-foreground">
-                          {formatLastAccessed(subject.last_accessed)}
-                        </span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="group-hover:bg-blue-600 group-hover:text-white transition-colors"
-                        >
-                          Continue
-                        </Button>
-                      </div>
+                      <h3 className="font-black text-sm text-center line-clamp-2 group-hover:text-blue-600 transition-colors min-h-[2.5rem]">
+                        {subject.subject_title}
+                      </h3>
                     </CardContent>
                   </Card>
                 ))}

@@ -2557,7 +2557,12 @@ export function CourseView({
                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-2 border-black font-bold rounded-md hover:bg-blue-200">
                    {chapter.metadata?.topicCount || chapter.children?.length || 0} Topics
                  </Badge>
-                 {/* Completion check can be added later with user progress data */}
+                 {(chapter.isPremium || (chapter.children || []).some(t => t.isPremium)) && !isSubscribed && (
+                   <Badge variant="secondary" className="bg-yellow-300 text-black border-2 border-black font-bold rounded-md flex items-center gap-1">
+                     <Lock className="h-3 w-3" />
+                     Premium
+                   </Badge>
+                 )}
               </div>
               <CardTitle className="font-black text-xl leading-tight group-hover:text-blue-700 transition-colors">{chapter.title}</CardTitle>
               <CardDescription className="line-clamp-2 text-slate-600 font-medium mt-1">{chapter.description}</CardDescription>

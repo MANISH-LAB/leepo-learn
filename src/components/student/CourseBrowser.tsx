@@ -24,7 +24,8 @@ import {
   CalendarDays,
   ArrowLeft,
   Loader2,
-  Info
+  Info,
+  Lock
 } from "lucide-react";
 
 import { Node } from "../../utils/sharedData";
@@ -61,9 +62,11 @@ interface CourseBrowserProps {
   onXPUpdate?: () => void;
   autoNavigateTarget?: { subjectId: string; chapterId: string; topicId: string } | null;
   onAutoNavigateComplete?: () => void;
+  targetSubjectId?: string | null;
+  onSubjectNavigationComplete?: () => void;
 }
 
-export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEGREE", onViewDashboard, user, streak = 0, xp = 0, maxStreak = 0, avgScore = 0, continueLearning, onXPUpdate, autoNavigateTarget, onAutoNavigateComplete }: CourseBrowserProps) {
+export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEGREE", onViewDashboard, user, streak = 0, xp = 0, maxStreak = 0, avgScore = 0, continueLearning, onXPUpdate, autoNavigateTarget, onAutoNavigateComplete, targetSubjectId, onSubjectNavigationComplete }: CourseBrowserProps) {
   const isMobile = useIsMobile();
   const params = useParams<{ degreeSlug?: string; subjectSlug?: string; chapterSlug?: string; topicSlug?: string }>();
   const navigate = useNavigate();
@@ -272,6 +275,98 @@ export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEG
 
     navigateToTarget();
   }, [autoNavigateTarget, localResumeTarget, courseData]);
+
+  // Handle subject navigation from dashboard
+  useEffect(() => {
+    if (!targetSubjectId) {
+      console.log('⏸️ No target subject ID set');
+      return;
+    }
+
+    console.log('🎯 Navigating to subject:', targetSubjectId);
+
+    const navigateToSubject = async () => {
+      setIsLoading(true);
+
+      try {
+        // Find the subject in the course hierarchy
+        console.log('📚 Looking for subject in course hierarchy...');
+        let foundSubject: Node | null = null;
+        let foundYear: Node | null = null;
+        let foundDegree: Node | null = null;
+
+        for (const degree of courseData) {
+          for (const year of degree.children || []) {
+            const subject = (year.children || []).find(s => s.id === targetSubjectId);
+            if (subject) {
+              foundSubject = subject;
+              foundYear = year;
+              foundDegree = degree;
+              break;
+            }
+          }
+          if (foundSubject) break;
+        }
+
+        if (!foundSubject || !foundYear || !foundDegree) {
+          console.warn('⚠️ Subject not found in course hierarchy, loading from database...');
+
+          // Fetch chapters directly even if subject not in hierarchy
+          const chapters = await db.fetchChaptersForSubject(targetSubjectId);
+          console.log('✅ Found', chapters.length, 'chapters');
+
+          // Create a minimal subject node
+          const minimalSubject: Node = {
+            id: targetSubjectId,
+            title: 'Subject',
+            type: 'SUBJECT',
+            slug: targetSubjectId,
+            orderIndex: 0,
+            children: chapters,
+          };
+
+          setSelectedSubject(minimalSubject);
+          setLevel("CHAPTERS");
+          setIsDashboardExpanded(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+
+          console.log('✅ Subject navigation complete (minimal mode)');
+          if (onSubjectNavigationComplete) onSubjectNavigationComplete();
+          setIsLoading(false);
+          return;
+        }
+
+        console.log('✅ Found subject:', foundSubject.title);
+
+        // Fetch chapters for this subject
+        console.log('📖 Fetching chapters...');
+        const chapters = await db.fetchChaptersForSubject(targetSubjectId);
+        console.log('✅ Found', chapters.length, 'chapters');
+
+        // Update the subject node with loaded children
+        const updatedSubject = { ...foundSubject, children: chapters };
+
+        setSelectedDegree(foundDegree);
+        setSelectedYear(foundYear);
+        setSelectedSubject(updatedSubject);
+        setLevel("CHAPTERS");
+        setIsDashboardExpanded(false);
+
+        // Scroll to top after navigation
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        console.log('✅ Subject navigation complete');
+        if (onSubjectNavigationComplete) onSubjectNavigationComplete();
+        setIsLoading(false);
+      } catch (error) {
+        console.error('❌ Error during subject navigation:', error);
+        setIsLoading(false);
+        if (onSubjectNavigationComplete) onSubjectNavigationComplete();
+      }
+    };
+
+    navigateToSubject();
+  }, [targetSubjectId, courseData, onSubjectNavigationComplete]);
 
   // Resume course handler
   const handleResumeCourse = () => {
@@ -817,9 +912,17 @@ export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEG
                >
                  <CardHeader>
                    <div className="flex justify-between items-start mb-2">
-                     <Badge variant="outline" className="mb-2 bg-purple-100 text-purple-700 border-2 border-black font-bold">
-                       {subject.metadata?.chapterCount || subject.children?.length || 0} Chapters
-                     </Badge>
+                     <div className="flex gap-2">
+                       <Badge variant="outline" className="bg-purple-100 text-purple-700 border-2 border-black font-bold">
+                         {subject.metadata?.chapterCount || subject.children?.length || 0} Chapters
+                       </Badge>
+                       {subject.isPremium && (
+                         <Badge variant="secondary" className="bg-yellow-300 text-black border-2 border-black font-bold flex items-center gap-1">
+                           <Lock className="h-3 w-3" />
+                           Premium
+                         </Badge>
+                       )}
+                     </div>
                      {isStarted && !isCompleted && subject.lastAccessed && (
                         <div title="Last accessed time" className="flex items-center gap-1 text-xs font-bold text-slate-500 border-2 border-slate-200 rounded-md px-2 py-1 bg-slate-50">
                             <Clock className="h-3 w-3" />

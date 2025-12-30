@@ -142,24 +142,148 @@ export async function fetchAccessibleSubjects(
   userId: string,
   degreeId?: string
 ): Promise<SubjectProgress[]> {
-  let query = supabase
-    .from('user_subject_progress')
-    .select('*')
-    .eq('user_id', userId)
-    .order('last_accessed', { ascending: false });
+  console.log('📚 [START] Fetching purchased subjects for user:', userId);
 
-  if (degreeId && degreeId !== 'all') {
-    query = query.eq('degree_id', degreeId);
-  }
+  try {
+    // Step 1: Get subscriptions using direct fetch with auth
+    console.log('🔍 Step 1: Fetching subscriptions via direct API...');
 
-  const { data, error } = await query;
+    // Get session token from localStorage (auth.getSession() hangs)
+    console.log('🔐 Reading session from localStorage...');
+    const supabaseAuthKey = `sb-${supabase.supabaseUrl?.split('//')[1]?.split('.')[0]}-auth-token`;
+    const storedSession = localStorage.getItem(supabaseAuthKey);
 
-  if (error) {
-    console.error('Error fetching accessible subjects:', error);
+    let accessToken: string | undefined;
+    if (storedSession) {
+      try {
+        const sessionData = JSON.parse(storedSession);
+        accessToken = sessionData?.access_token;
+        console.log('✅ Got access token from localStorage');
+      } catch (e) {
+        console.warn('⚠️ Failed to parse session from localStorage');
+      }
+    } else {
+      console.warn('⚠️ No session found in localStorage');
+    }
+
+    console.log('🔐 Has access token:', !!accessToken);
+
+    const url = `${supabase.supabaseUrl}/rest/v1/subscriptions?user_id=eq.${userId}&is_active=eq.true&payment_status=eq.completed&select=degree_id,degree_title,subject_ids`;
+
+    console.log('🔗 Fetching from:', url);
+
+    const headers: Record<string, string> = {
+      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+      'Content-Type': 'application/json',
+    };
+
+    // Add Authorization header if we have a token
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+      console.log('✅ Added Authorization header');
+    }
+
+    const response = await fetch(url, { headers });
+
+    console.log('📡 Response status:', response.status);
+
+    if (!response.ok) {
+      console.error('❌ HTTP error:', response.status, response.statusText);
+      return [];
+    }
+
+    const subscriptions = await response.json();
+
+    console.log('📊 Subscriptions result:', {
+      count: subscriptions?.length || 0,
+      data: subscriptions
+    });
+
+    if (!subscriptions || subscriptions.length === 0) {
+      console.log('⚠️ No subscriptions found for user');
+      return [];
+    }
+
+    console.log('✅ Found subscriptions:', subscriptions);
+
+    // Step 2: Get all subject IDs
+    console.log('🔍 Step 2: Extracting subject IDs...');
+    const subjectIds = new Set<string>();
+    subscriptions.forEach(sub => {
+      if (sub.subject_ids && Array.isArray(sub.subject_ids)) {
+        sub.subject_ids.forEach((id: string) => subjectIds.add(id));
+      }
+    });
+
+    console.log('📝 Subject IDs:', Array.from(subjectIds));
+
+    if (subjectIds.size === 0) {
+      console.log('❌ No subject IDs found in subscriptions');
+      return [];
+    }
+
+    // Step 3: Fetch subject names using direct fetch
+    console.log('🔍 Step 3: Fetching subject details via direct API...');
+
+    const subjectIdsArray = Array.from(subjectIds);
+    const subjectIdsFilter = subjectIdsArray.map(id => `"${id}"`).join(',');
+    const subjectsUrl = `${supabase.supabaseUrl}/rest/v1/hierarchy_nodes?type=eq.SUBJECT&id=in.(${subjectIdsFilter})&select=id,title`;
+
+    console.log('🔗 Fetching subjects from:', subjectsUrl);
+
+    const subjectsHeaders: Record<string, string> = {
+      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+      'Content-Type': 'application/json',
+    };
+
+    if (accessToken) {
+      subjectsHeaders['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const subjectsResponse = await fetch(subjectsUrl, { headers: subjectsHeaders });
+
+    console.log('📡 Subjects response status:', subjectsResponse.status);
+
+    if (!subjectsResponse.ok) {
+      console.error('❌ HTTP error:', subjectsResponse.status);
+      return [];
+    }
+
+    const subjects = await subjectsResponse.json();
+
+    console.log('📊 Subjects result:', {
+      count: subjects?.length || 0,
+      data: subjects
+    });
+
+    if (!subjects || subjects.length === 0) {
+      console.log('⚠️ No subjects found');
+      return [];
+    }
+
+    console.log('✅ Fetched subjects:', subjects);
+
+    // Step 4: Build simple result
+    console.log('🔍 Step 4: Building result...');
+    const result: SubjectProgress[] = subjects.map(subject => ({
+      user_id: userId,
+      subject_id: subject.id,
+      subject_title: subject.title,
+      degree_id: subscriptions[0].degree_id || '',
+      degree_title: subscriptions[0].degree_title || '',
+      total_topics: 0,
+      completed_topics: 0,
+      is_purchased: true,
+      last_accessed: new Date().toISOString(),
+    }));
+
+    console.log('🎉 SUCCESS! Returning', result.length, 'subjects');
+    return result;
+  } catch (error) {
+    console.error('💥 EXCEPTION in fetchAccessibleSubjects:', error);
+    console.error('Stack trace:', (error as Error).stack);
     return [];
   }
-
-  return data || [];
 }
 
 /**
