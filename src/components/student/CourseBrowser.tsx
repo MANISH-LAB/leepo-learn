@@ -491,7 +491,10 @@ export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEG
                    </CardTitle>
                 </CardHeader>
                 <CardContent>
-                   <div className="text-2xl font-black">{stats?.overall_completion_percentage || 0}%</div>
+                   <div className="flex items-center gap-3">
+                     <img src="/progress-check.svg" alt="Progress" className="h-12 w-12" />
+                     <div className="text-2xl font-black">{stats?.overall_completion_percentage || 0}%</div>
+                   </div>
                    <Progress value={stats?.overall_completion_percentage || 0} className="h-3 mt-2 border border-black bg-gray-100 [&>div]:bg-green-500" />
                    <p className="text-xs text-slate-500 font-medium mt-1">
                      {stats?.completed_topics_count || 0} of {stats?.total_topics_count || 0} topics
@@ -545,11 +548,15 @@ export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEG
                 </CardHeader>
                 <CardContent>
                    {localContinueLearning ? (
-                     <div>
+                     <div className="flex items-center gap-3">
+                        <img src="/active-subject.svg" alt="Active Subject" className="h-12 w-12 shrink-0" />
                         <div className="font-bold text-sm md:text-base lg:text-lg truncate text-white hover:text-gray-200 bg-black px-2 py-1.5 md:px-3 md:py-2 rounded-lg inline-block border-2 border-black max-w-full">{localContinueLearning.subject_title}</div>
                      </div>
                    ) : (
-                     <p className="text-sm text-slate-500">No active subject</p>
+                     <div className="flex items-center gap-3">
+                        <img src="/active-subject.svg" alt="Active Subject" className="h-12 w-12 shrink-0 opacity-30" />
+                        <p className="text-sm text-slate-500">No active subject</p>
+                     </div>
                    )}
                 </CardContent>
              </Card>
@@ -612,11 +619,15 @@ export function CourseBrowser({ courseData, onSubjectSelect, initialLevel = "DEG
                 </CardHeader>
                 <CardContent>
                    {localContinueLearning ? (
-                     <div>
+                     <div className="flex items-center gap-3">
+                        <img src="/next-up.svg" alt="Next Up" className="h-12 w-12 shrink-0" />
                         <div className="font-bold text-sm md:text-base lg:text-lg truncate text-white hover:text-gray-200 bg-black px-2 py-1.5 md:px-3 md:py-2 rounded-lg inline-block border-2 border-black max-w-full">{localContinueLearning.topic_title}</div>
                      </div>
                    ) : (
-                     <p className="text-sm text-slate-500">No recent activity</p>
+                     <div className="flex items-center gap-3">
+                        <img src="/next-up.svg" alt="Next Up" className="h-12 w-12 shrink-0 opacity-30" />
+                        <p className="text-sm text-slate-500">No recent activity</p>
+                     </div>
                    )}
                 </CardContent>
              </Card>

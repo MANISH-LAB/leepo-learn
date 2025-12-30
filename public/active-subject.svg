@@ -1,0 +1,43 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Book base -->
+  <path d="M60 180 L60 450 C60 465 70 475 85 475 L427 475 C442 475 452 465 452 450 L452 180 Z" fill="#F59E0B" stroke="black" stroke-width="20"/>
+
+  <!-- Book pages (white) -->
+  <path d="M85 220 L85 450 C85 460 90 465 100 465 L412 465 C422 465 427 460 427 450 L427 220 Z" fill="white" stroke="black" stroke-width="16"/>
+
+  <!-- Center fold line -->
+  <line x1="256" y1="220" x2="256" y2="475" stroke="black" stroke-width="16"/>
+
+  <!-- Left page lines -->
+  <line x1="120" y1="280" x2="220" y2="280" stroke="black" stroke-width="12" stroke-linecap="round"/>
+  <line x1="120" y1="320" x2="220" y2="320" stroke="black" stroke-width="12" stroke-linecap="round"/>
+  <line x1="120" y1="360" x2="220" y2="360" stroke="black" stroke-width="12" stroke-linecap="round"/>
+  <line x1="120" y1="400" x2="220" y2="400" stroke="black" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- Right page lines -->
+  <line x1="292" y1="280" x2="392" y2="280" stroke="black" stroke-width="12" stroke-linecap="round"/>
+  <line x1="292" y1="320" x2="392" y2="320" stroke="black" stroke-width="12" stroke-linecap="round"/>
+  <line x1="292" y1="360" x2="392" y2="360" stroke="black" stroke-width="12" stroke-linecap="round"/>
+  <line x1="292" y1="400" x2="392" y2="400" stroke="black" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- Gear background circle -->
+  <circle cx="256" cy="120" r="85" fill="#F59E0B" stroke="black" stroke-width="16"/>
+
+  <!-- Gear teeth (simplified) -->
+  <path d="M 256 35 L 270 50 L 270 70 L 256 85 L 242 70 L 242 50 Z" fill="#F59E0B" stroke="black" stroke-width="12"/>
+  <path d="M 310 50 L 320 65 L 310 85 L 290 85 L 285 70 L 295 55 Z" fill="#F59E0B" stroke="black" stroke-width="12"/>
+  <path d="M 340 95 L 345 112 L 330 125 L 315 115 L 315 100 L 327 88 Z" fill="#F59E0B" stroke="black" stroke-width="12"/>
+  <path d="M 340 145 L 327 158 L 315 148 L 315 128 L 330 118 L 345 130 Z" fill="#F59E0B" stroke="black" stroke-width="12"/>
+  <path d="M 310 190 L 295 185 L 290 170 L 310 155 L 320 170 L 310 185 Z" fill="#F59E0B" stroke="black" stroke-width="12"/>
+  <path d="M 256 205 L 242 190 L 242 170 L 256 155 L 270 170 L 270 190 Z" fill="#F59E0B" stroke="black" stroke-width="12"/>
+  <path d="M 202 190 L 217 185 L 222 170 L 202 155 L 192 170 L 202 185 Z" fill="#F59E0B" stroke="black" stroke-width="12"/>
+  <path d="M 172 145 L 185 158 L 197 148 L 197 128 L 182 118 L 167 130 Z" fill="#F59E0B" stroke="black" stroke-width="12"/>
+  <path d="M 172 95 L 185 82 L 197 92 L 197 112 L 182 122 L 167 110 Z" fill="#F59E0B" stroke="black" stroke-width="12"/>
+  <path d="M 202 50 L 217 55 L 222 70 L 202 85 L 192 70 L 202 55 Z" fill="#F59E0B" stroke="black" stroke-width="12"/>
+
+  <!-- Center circle of gear (white) -->
+  <circle cx="256" cy="120" r="45" fill="white" stroke="black" stroke-width="16"/>
+
+  <!-- Bottom book edge highlight -->
+  <path d="M85 465 Q100 475 115 472 L397 472 Q412 475 427 465" stroke="black" stroke-width="8" fill="none"/>
+</svg>
