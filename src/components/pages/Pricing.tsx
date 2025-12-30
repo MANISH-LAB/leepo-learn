@@ -1,4 +1,4 @@
-import { Check, Sparkles, Zap, Crown, ArrowLeft } from "lucide-react";
+import { Check, Sparkles, Zap, Crown, ArrowLeft, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
 import { Price } from "../ui/Price";
@@ -27,9 +27,10 @@ export function Pricing() {
           <p className="text-xl text-muted-foreground font-medium">
             Choose the plan that works best for you
           </p>
-          <p className="text-sm text-slate-500 font-medium bg-blue-50 border-2 border-blue-200 rounded-lg px-4 py-2 inline-block">
-            💡 Prices shown in local currency are estimates. All payments are processed in USD.
-          </p>
+          <div className="text-sm text-black font-bold bg-yellow-300 border-2 border-black rounded-lg px-4 py-3 inline-flex items-center gap-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <Info className="h-4 w-4 shrink-0" />
+            <span>Prices shown in local currency are estimates. All payments are processed in USD.</span>
+          </div>
         </div>
 
         {/* Pricing Cards */}
