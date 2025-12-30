@@ -840,6 +840,10 @@ export function CourseView({
 
     const handleLoadedMetadata = () => {
       setAudioDuration(audio.duration);
+      // Also update duration when metadata is loaded
+      if (!isNaN(audio.duration) && audio.duration > 0) {
+        setAudioDuration(audio.duration);
+      }
     };
 
     const handleEnded = () => {
@@ -848,16 +852,30 @@ export function CourseView({
       setAudioCurrentTime(0);
     };
 
+    const handleCanPlay = () => {
+      // Fallback for duration if loadedmetadata doesn't fire
+      if (!isNaN(audio.duration) && audio.duration > 0) {
+        setAudioDuration(audio.duration);
+      }
+    };
+
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('canplay', handleCanPlay);
     audio.addEventListener('ended', handleEnded);
+
+    // Initialize duration if already loaded
+    if (!isNaN(audio.duration) && audio.duration > 0) {
+      setAudioDuration(audio.duration);
+    }
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, []);
+  }, [activeTopic, language, mediaMode]);
 
   // Media Session API for background playback (mobile)
   useEffect(() => {
@@ -1433,6 +1451,19 @@ export function CourseView({
                               minHeight: '200%'
                             }}
                           />
+
+                          {/* Interactive Playground Overlay - Only on iframe */}
+                          {activeTopic.interactiveContent && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setIsInteractiveMode(true)}
+                              className={`absolute top-4 left-4 z-30 backdrop-blur-md bg-black/40 text-blue-400 hover:bg-black/60 hover:text-blue-300 border-0 h-8 transition-opacity ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                            >
+                              <Gamepad2 className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                              {!isMobile && ' Practice'}
+                            </Button>
+                          )}
                         </div>
                       ) : (
                         <video
@@ -1490,20 +1521,15 @@ export function CourseView({
                           </div>
                       )}
                       
-                      {/* Top Left Actions */}
-                      <div className={`absolute top-4 left-4 z-30 flex gap-2 transition-opacity ${isVideoCompleted ? 'opacity-0 pointer-events-none' : isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                          {activeTopic.interactiveContent && (
-                            <Button variant="secondary" size="sm" onClick={() => setIsInteractiveMode(true)} className="backdrop-blur-md bg-black/40 text-blue-400 hover:bg-black/60 hover:text-blue-300 border-0 h-8">
-                              <Gamepad2 className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
-                              {!isMobile && ' Practice'}
+                      {/* Top Left Actions - Screenshot only (for regular video, not iframe) */}
+                      {!isIframeUrl(language === 'hi' && activeTopic.videoUrlHindi ? activeTopic.videoUrlHindi : activeTopic.videoUrl) && (
+                        <div className={`absolute top-4 left-4 z-30 flex gap-2 transition-opacity ${isVideoCompleted ? 'opacity-0 pointer-events-none' : isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                            <Button variant="secondary" size="sm" onClick={captureScreenshot} className="backdrop-blur-md bg-black/40 text-white hover:bg-black/60 border-0 h-8">
+                              <Camera className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                              {!isMobile && ' Snap'}
                             </Button>
-                          )}
-
-                          <Button variant="secondary" size="sm" onClick={captureScreenshot} className="backdrop-blur-md bg-black/40 text-white hover:bg-black/60 border-0 h-8">
-                            <Camera className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
-                            {!isMobile && ' Snap'}
-                          </Button>
-                      </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="flex items-center justify-center h-full text-white">No Video</div>
@@ -1550,7 +1576,20 @@ export function CourseView({
                                 <audio
                                     ref={audioRef}
                                     src={language === 'hi' && activeTopic.audioUrlHindi ? activeTopic.audioUrlHindi : activeTopic.audioUrl}
-                                    onEnded={() => setIsPlaying(false)}
+                                    onTimeUpdate={(e) => {
+                                      const audio = e.currentTarget;
+                                      setAudioCurrentTime(audio.currentTime);
+                                      setAudioProgress((audio.currentTime / audio.duration) * 100 || 0);
+                                    }}
+                                    onLoadedMetadata={(e) => {
+                                      const audio = e.currentTarget;
+                                      setAudioDuration(audio.duration);
+                                    }}
+                                    onEnded={() => {
+                                      setIsPlaying(false);
+                                      setAudioProgress(0);
+                                      setAudioCurrentTime(0);
+                                    }}
                                     onPlay={() => setIsPlaying(true)}
                                     onPause={() => setIsPlaying(false)}
                                 />
@@ -1716,13 +1755,6 @@ export function CourseView({
                         </div>
                       </DialogContent>
                     </Dialog>
-
-                    {activeTopic.interactiveContent && (
-                      <Button variant="default" size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => setIsInteractiveMode(true)}>
-                        <Gamepad2 className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
-                        {!isMobile && ' Practice'}
-                      </Button>
-                    )}
 
                     <Button
                       variant={completedTopicIds.has(activeTopic.id) ? "default" : "outline"}
@@ -2039,37 +2071,33 @@ export function CourseView({
                         )}
                    </div>
 
-                   {/* Left Actions */}
-                   <div className="absolute top-4 left-4 z-30 flex gap-2 transition-opacity">
-                        <Select value={playbackRate} onValueChange={handleSpeedChange}>
-                            <SelectTrigger className="w-[70px] h-8 backdrop-blur-md bg-black/40 text-white border-0 hover:bg-black/60 focus:ring-0 focus:ring-offset-0 text-xs">
-                              <SelectValue placeholder="1x" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="0.5">0.5x</SelectItem>
-                              <SelectItem value="1">1x</SelectItem>
-                              <SelectItem value="1.25">1.25x</SelectItem>
-                              <SelectItem value="1.5">1.5x</SelectItem>
-                              <SelectItem value="2">2x</SelectItem>
-                            </SelectContent>
-                        </Select>
-
-                        {activeTopic.interactiveContent && (
-                            <Button variant="secondary" size="icon" onClick={() => setIsInteractiveMode(true)} className="h-8 w-8 backdrop-blur-md bg-black/40 text-blue-400 hover:bg-black/60 hover:text-blue-300 border-0">
-                              <Gamepad2 className="h-4 w-4" />
-                            </Button>
-                          )}
+                   {/* Left Actions - Speed & Screenshot (only for regular video, not iframe) */}
+                   {!isIframeUrl(activeTopic.videoUrl) && (
+                     <div className="absolute top-4 left-4 z-30 flex gap-2 transition-opacity">
+                          <Select value={playbackRate} onValueChange={handleSpeedChange}>
+                              <SelectTrigger className="w-[70px] h-8 backdrop-blur-md bg-black/40 text-white border-0 hover:bg-black/60 focus:ring-0 focus:ring-offset-0 text-xs">
+                                <SelectValue placeholder="1x" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="0.5">0.5x</SelectItem>
+                                <SelectItem value="1">1x</SelectItem>
+                                <SelectItem value="1.25">1.25x</SelectItem>
+                                <SelectItem value="1.5">1.5x</SelectItem>
+                                <SelectItem value="2">2x</SelectItem>
+                              </SelectContent>
+                          </Select>
 
                           <Button variant="secondary" size="icon" onClick={captureScreenshot} className="h-8 w-8 backdrop-blur-md bg-black/40 text-white hover:bg-black/60 border-0">
                             <Camera className="h-4 w-4" />
                           </Button>
-                   </div>
+                     </div>
+                   )}
 
                    {mediaMode === 'video' ? (
                        activeTopic.videoUrl ? (
                          <>
                            {isIframeUrl(activeTopic.videoUrl) ? (
-                             <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
+                             <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center group">
                                <iframe
                                  src={activeTopic.videoUrl}
                                  className="absolute"
@@ -2087,6 +2115,19 @@ export function CourseView({
                                    minHeight: '200%'
                                  }}
                                />
+
+                               {/* Interactive Playground Overlay - Only on iframe */}
+                               {activeTopic.interactiveContent && (
+                                 <Button
+                                   variant="secondary"
+                                   size="sm"
+                                   onClick={() => setIsInteractiveMode(true)}
+                                   className={`absolute top-4 left-4 z-30 backdrop-blur-md bg-black/40 text-blue-400 hover:bg-black/60 hover:text-blue-300 border-0 h-8 transition-opacity ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                 >
+                                   <Gamepad2 className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                                   {!isMobile && ' Practice'}
+                                 </Button>
+                               )}
                              </div>
                            ) : (
                              <video
@@ -2149,7 +2190,20 @@ export function CourseView({
                                    <audio
                                        ref={audioRef}
                                        src={activeTopic.audioUrl}
-                                       onEnded={() => setIsPlaying(false)}
+                                       onTimeUpdate={(e) => {
+                                         const audio = e.currentTarget;
+                                         setAudioCurrentTime(audio.currentTime);
+                                         setAudioProgress((audio.currentTime / audio.duration) * 100 || 0);
+                                       }}
+                                       onLoadedMetadata={(e) => {
+                                         const audio = e.currentTarget;
+                                         setAudioDuration(audio.duration);
+                                       }}
+                                       onEnded={() => {
+                                         setIsPlaying(false);
+                                         setAudioProgress(0);
+                                         setAudioCurrentTime(0);
+                                       }}
                                        onPlay={() => setIsPlaying(true)}
                                        onPause={() => setIsPlaying(false)}
                                    />
@@ -2386,12 +2440,6 @@ export function CourseView({
                          )}
                        </DialogContent>
                      </Dialog>
-
-                     {activeTopic.interactiveContent && (
-                       <Button variant="default" className="bg-blue-600 hover:bg-blue-700" onClick={() => setIsInteractiveMode(true)}>
-                          <Gamepad2 className="mr-2 h-4 w-4" /> Interactive Practice
-                       </Button>
-                     )}
 
                      <Button 
                         variant={completedTopicIds.has(activeTopic.id) ? "secondary" : "default"}
