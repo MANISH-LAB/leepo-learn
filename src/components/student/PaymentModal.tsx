@@ -19,7 +19,9 @@ import {
   ChevronRight,
   Package,
   Calendar,
-  DollarSign
+  DollarSign,
+  ShieldCheck,
+  Info
 } from "lucide-react";
 import { Separator } from "../ui/separator";
 import { ScrollArea } from "../ui/scroll-area";
@@ -420,6 +422,10 @@ export function PaymentModal({
         }
       };
 
+      // Close PaymentModal before opening Razorpay to avoid blocking interaction
+      console.log('🚪 Closing PaymentModal to allow Razorpay interaction...');
+      onClose();
+
       // Open Razorpay Checkout
       console.log('🚀 Opening Razorpay...');
       const razorpay = new (window as any).Razorpay(options);
@@ -791,17 +797,19 @@ export function PaymentModal({
                     <CreditCard className="h-5 w-5" />
                     Payment Details
                   </h3>
-                  <div className="bg-green-50 p-4 rounded-lg border-2 border-green-600 mb-4">
-                    <p className="text-green-900 text-sm font-bold mb-2">
-                      ✅ Secure Payment via Razorpay
+                  <div className="bg-green-400 p-4 rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-4">
+                    <p className="text-black text-sm font-black mb-2 flex items-center gap-2">
+                      <ShieldCheck className="h-5 w-5" />
+                      Secure Payment via Razorpay
                     </p>
-                    <p className="text-slate-700 text-xs font-medium">
+                    <p className="text-black text-xs font-bold">
                       Click "Pay" below to complete your purchase using Razorpay's secure checkout. You can pay with credit/debit cards, UPI, net banking, and wallets.
                     </p>
                   </div>
-                  <div className="bg-blue-50 p-3 rounded-lg border-2 border-blue-200">
-                    <p className="text-slate-600 text-xs font-medium">
-                      💡 Prices shown in local currency are estimates. All payments are processed in USD at current exchange rates.
+                  <div className="bg-yellow-300 p-4 rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <p className="text-black text-xs font-bold flex items-center gap-2">
+                      <Info className="h-4 w-4 shrink-0" />
+                      <span>Prices shown in local currency are estimates. All payments are processed in USD at current exchange rates.</span>
                     </p>
                   </div>
                 </CardContent>
