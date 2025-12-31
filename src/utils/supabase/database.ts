@@ -2050,21 +2050,61 @@ export async function createUserNote(
   screenshotUrl?: string
 ): Promise<UserNote | null> {
   try {
-    const { data, error } = await supabase
-      .from('user_notes')
-      .insert({
-        user_id: userId,
-        topic_id: topicId,
-        content,
-        media_timestamp: mediaTimestamp,
-        screenshot_url: screenshotUrl,
-      })
-      .select();
+    console.log('💾 Creating user note via direct API...');
 
-    if (error) throw error;
+    // Get auth token from localStorage
+    const supabaseAuthKey = `sb-${supabase.supabaseUrl?.split('//')[1]?.split('.')[0]}-auth-token`;
+    const storedSession = localStorage.getItem(supabaseAuthKey);
+    let accessToken: string | undefined;
+
+    if (storedSession) {
+      try {
+        const sessionData = JSON.parse(storedSession);
+        accessToken = sessionData?.access_token;
+      } catch (e) {
+        console.warn('⚠️ Failed to parse session');
+      }
+    }
+
+    const url = `${supabase.supabaseUrl}/rest/v1/user_notes`;
+    const headers: Record<string, string> = {
+      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+    };
+
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const body = JSON.stringify({
+      user_id: userId,
+      topic_id: topicId,
+      content,
+      media_timestamp: mediaTimestamp,
+      screenshot_url: screenshotUrl,
+    });
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body,
+    });
+
+    console.log('📡 Note creation response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ HTTP error:', response.status, errorText);
+      return null;
+    }
+
+    const data = await response.json();
+    console.log('✅ Note created:', data);
+
     return data && data.length > 0 ? data[0] : null;
   } catch (error) {
-    console.error('Error creating user note:', error);
+    console.error('💥 Error creating user note:', error);
     return null;
   }
 }
