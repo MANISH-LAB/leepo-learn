@@ -1442,6 +1442,10 @@ export function CourseView({
                              }`}
                              onClick={(e) => {
                                e.stopPropagation();
+                               console.log('🌐 [Mobile] Switching to English');
+                               console.log('Active Topic:', activeTopic?.title);
+                               console.log('EN Video URL:', activeTopic?.videoUrl);
+                               console.log('HI Video URL:', activeTopic?.videoUrlHindi);
                                setLanguage('en');
                              }}
                          >
@@ -1457,6 +1461,10 @@ export function CourseView({
                              }`}
                              onClick={(e) => {
                                e.stopPropagation();
+                               console.log('🌐 [Mobile] Switching to Hindi');
+                               console.log('Active Topic:', activeTopic?.title);
+                               console.log('EN Video URL:', activeTopic?.videoUrl);
+                               console.log('HI Video URL:', activeTopic?.videoUrlHindi);
                                setLanguage('hi');
                              }}
                          >
@@ -1464,9 +1472,11 @@ export function CourseView({
                          </Button>
                      </div>
 
-                     {/* Video/Audio Mode Toggle - Show only if both are available */}
-                     {((language === 'hi' && activeTopic.videoUrlHindi && activeTopic.audioUrlHindi) ||
-                       (language === 'en' && activeTopic.videoUrl && activeTopic.audioUrl)) && (
+                     {/* Video/Audio Mode Toggle - Show if topic has both video and audio in any language */}
+                     {(
+                       (activeTopic.videoUrl && activeTopic.audioUrl) ||
+                       (activeTopic.videoUrlHindi && activeTopic.audioUrlHindi)
+                     ) && (
                        <div className="flex bg-black/60 backdrop-blur-md rounded-md p-0.5 gap-0.5 items-center border-2 border-white/20 shadow-[2px_2px_0px_0px_rgba(255,255,255,0.1)]">
                            <Button
                                size="sm"
@@ -2058,6 +2068,10 @@ export function CourseView({
                                }`}
                                onClick={(e) => {
                                  e.stopPropagation();
+                                 console.log('🌐 Switching to English');
+                                 console.log('Active Topic:', activeTopic?.title);
+                                 console.log('EN Video URL:', activeTopic?.videoUrl);
+                                 console.log('HI Video URL:', activeTopic?.videoUrlHindi);
                                  setLanguage('en');
                                }}
                            >
@@ -2073,6 +2087,10 @@ export function CourseView({
                                }`}
                                onClick={(e) => {
                                  e.stopPropagation();
+                                 console.log('🌐 Switching to Hindi');
+                                 console.log('Active Topic:', activeTopic?.title);
+                                 console.log('EN Video URL:', activeTopic?.videoUrl);
+                                 console.log('HI Video URL:', activeTopic?.videoUrlHindi);
                                  setLanguage('hi');
                                }}
                            >
@@ -2080,9 +2098,11 @@ export function CourseView({
                            </Button>
                        </div>
 
-                       {/* Video/Audio Mode Toggle - Show only if both are available */}
-                       {((language === 'hi' && activeTopic.videoUrlHindi && activeTopic.audioUrlHindi) ||
-                         (language === 'en' && activeTopic.videoUrl && activeTopic.audioUrl)) && (
+                       {/* Video/Audio Mode Toggle - Show if topic has both video and audio in any language */}
+                       {(
+                         (activeTopic.videoUrl && activeTopic.audioUrl) ||
+                         (activeTopic.videoUrlHindi && activeTopic.audioUrlHindi)
+                       ) && (
                          <div className="flex bg-black/60 backdrop-blur-md rounded-md p-0.5 gap-0.5 items-center border-2 border-white/20 shadow-[2px_2px_0px_0px_rgba(255,255,255,0.1)]">
                              <Button
                                  size="sm"

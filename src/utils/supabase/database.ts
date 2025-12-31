@@ -546,6 +546,14 @@ export async function fetchTopicsForChapter(chapterId: string): Promise<Node[]> 
         node.duration = asset.duration;
         node.isPremium = asset.is_premium;
         node.interactiveContent = asset.interactive_content;
+
+        // Debug: Log Hindi content availability
+        if (asset.video_url_hindi || asset.audio_url_hindi) {
+          console.log(`🌐 Hindi content found for "${t.title}":`, {
+            videoHindi: !!asset.video_url_hindi,
+            audioHindi: !!asset.audio_url_hindi
+          });
+        }
       }
 
       return node;
