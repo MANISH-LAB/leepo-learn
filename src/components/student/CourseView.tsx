@@ -1763,23 +1763,25 @@ export function CourseView({
                           {!isMobile && ' View PDF'}
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className={`${isMobile ? 'fixed inset-x-0 top-16 bottom-0 w-screen h-[calc(100vh-4rem)] max-w-none rounded-none m-0 translate-x-0 translate-y-0' : 'max-w-4xl h-[80vh]'} flex flex-col`}>
-                        <DialogHeader>
-                          <DialogTitle>{activeTopic.title} - PDF</DialogTitle>
+                      <DialogContent className="fixed inset-0 w-screen h-screen max-w-none rounded-none m-0 p-0 translate-x-0 translate-y-0 flex flex-col bg-slate-900">
+                        <DialogHeader className="px-6 py-4 border-b border-slate-700 bg-slate-800 flex-shrink-0">
+                          <div className="flex items-center justify-between">
+                            <DialogTitle className="text-white font-black text-lg">{activeTopic.title} - PDF</DialogTitle>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" asChild className="bg-white text-black border-2 border-black font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                                <a href={activeTopic.pdfUrl} download target="_blank" rel="noopener noreferrer">
+                                  <Download className="mr-2 h-4 w-4" /> Download
+                                </a>
+                              </Button>
+                            </div>
+                          </div>
                         </DialogHeader>
-                        <div className="flex-1 bg-muted rounded-md overflow-hidden relative">
+                        <div className="flex-1 bg-slate-900 overflow-hidden relative">
                           <iframe
                             src={activeTopic.pdfUrl}
-                            className="w-full h-full"
+                            className="w-full h-full border-0"
                             title="PDF Viewer"
                           />
-                        </div>
-                        <div className="flex justify-end pt-2">
-                          <Button variant="default" asChild>
-                            <a href={activeTopic.pdfUrl} download target="_blank" rel="noopener noreferrer">
-                              <Download className="mr-2 h-4 w-4" /> Download PDF
-                            </a>
-                          </Button>
                         </div>
                       </DialogContent>
                     </Dialog>
@@ -2352,23 +2354,25 @@ export function CourseView({
                            {!isMobile && ' View PDF'}
                          </Button>
                        </DialogTrigger>
-                       <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
-                         <DialogHeader>
-                           <DialogTitle>{activeTopic.title} - PDF</DialogTitle>
+                       <DialogContent className="fixed inset-0 w-screen h-screen max-w-none rounded-none m-0 p-0 translate-x-0 translate-y-0 flex flex-col bg-slate-900">
+                         <DialogHeader className="px-6 py-4 border-b border-slate-700 bg-slate-800 flex-shrink-0">
+                           <div className="flex items-center justify-between">
+                             <DialogTitle className="text-white font-black text-lg">{activeTopic.title} - PDF</DialogTitle>
+                             <div className="flex gap-2">
+                               <Button variant="outline" size="sm" asChild className="bg-white text-black border-2 border-black font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                                 <a href={activeTopic.pdfUrl} download target="_blank" rel="noopener noreferrer">
+                                   <Download className="mr-2 h-4 w-4" /> Download
+                                 </a>
+                               </Button>
+                             </div>
+                           </div>
                          </DialogHeader>
-                         <div className="flex-1 bg-muted rounded-md overflow-hidden relative">
-                            <iframe 
-                              src={activeTopic.pdfUrl} 
-                              className="w-full h-full"
+                         <div className="flex-1 bg-slate-900 overflow-hidden relative">
+                            <iframe
+                              src={activeTopic.pdfUrl}
+                              className="w-full h-full border-0"
                               title="PDF Viewer"
                             />
-                         </div>
-                         <div className="flex justify-end pt-2">
-                           <Button variant="default" asChild>
-                             <a href={activeTopic.pdfUrl} download target="_blank" rel="noopener noreferrer">
-                               <Download className="mr-2 h-4 w-4" /> Download PDF
-                             </a>
-                           </Button>
                          </div>
                        </DialogContent>
                      </Dialog>
