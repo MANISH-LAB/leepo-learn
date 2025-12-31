@@ -1343,9 +1343,47 @@ export function CourseView({
         );
     }
 
+    // Global PDF Dialog - Custom implementation with guaranteed high z-index
+    const pdfDialog = activeTopic?.pdfUrl && isPdfOpen && (
+      <div
+        className={`fixed top-16 bottom-0 flex items-center justify-center bg-black/50 backdrop-blur-sm ${isMobile ? 'left-0 right-0 w-screen' : 'left-0 w-1/2'}`}
+        style={{ zIndex: 999999 }}
+        onClick={() => setIsPdfOpen(false)}
+      >
+        {/* PDF Content */}
+        <div
+          className="relative w-full h-full bg-slate-900 flex flex-col border-r-4 border-black shadow-[4px_0px_0px_0px_rgba(0,0,0,1)]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Close Button */}
+          <button
+            onClick={() => setIsPdfOpen(false)}
+            className="absolute top-4 right-4 z-10 bg-white text-black border-2 border-black rounded-md shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] w-10 h-10 flex items-center justify-center transition-all"
+            aria-label="Close PDF"
+          >
+            <XCircle className="h-5 w-5" />
+          </button>
+
+          {/* PDF Iframe */}
+          <div className="flex-1 overflow-hidden">
+            <iframe
+              src={`${activeTopic.pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+              className="w-full h-full border-0"
+              title="PDF Viewer"
+              allow="fullscreen"
+              onLoad={() => console.log('✅ PDF iframe loaded')}
+              onError={() => console.error('❌ PDF iframe error')}
+            />
+          </div>
+        </div>
+      </div>
+    );
+
     if (isInteractiveMode && activeTopic?.interactiveContent) {
        return (
-        <div className="fixed inset-0 top-16 z-[9999] bg-background flex flex-col">
+          <>
+            {pdfDialog}
+            <div className="fixed inset-0 top-16 z-[9999] bg-background flex flex-col">
            {/* Control Bar Below Header - Contains Exit Button */}
            <div className="w-full bg-gradient-to-r from-red-600 to-red-700 border-b-4 border-red-800 shadow-lg px-6 py-4 flex items-center justify-between shrink-0">
              <div className="flex items-center gap-3">
@@ -1380,13 +1418,16 @@ export function CourseView({
                sandbox="allow-scripts allow-same-origin"
              />
            </div>
-        </div>
+          </div>
+        </>
        )
     }
 
     if (isTheatreMode) {
       return (
-        <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-300">
+        <>
+          {pdfDialog}
+          <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-300">
           {showXP && <XPParticles amount={xpAmount} onComplete={() => setShowXP(false)} />}
           <div className="h-14 border-b flex items-center justify-between px-6 bg-card shrink-0 shadow-sm z-20">
             <div className="flex items-center gap-4">
@@ -1756,35 +1797,20 @@ export function CourseView({
 
                   {/* Action Buttons - Visible in theatre mode */}
                   <div className="flex flex-wrap gap-2 shrink-0">
-                    <Dialog open={isPdfOpen} onOpenChange={setIsPdfOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <FileText className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
-                          {!isMobile && ' View PDF'}
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="fixed inset-0 w-screen h-screen max-w-none rounded-none m-0 p-0 translate-x-0 translate-y-0 flex flex-col bg-slate-900">
-                        <DialogHeader className="px-6 py-4 border-b border-slate-700 bg-slate-800 flex-shrink-0">
-                          <div className="flex items-center justify-between">
-                            <DialogTitle className="text-white font-black text-lg">{activeTopic.title} - PDF</DialogTitle>
-                            <div className="flex gap-2">
-                              <Button variant="outline" size="sm" asChild className="bg-white text-black border-2 border-black font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                                <a href={activeTopic.pdfUrl} download target="_blank" rel="noopener noreferrer">
-                                  <Download className="mr-2 h-4 w-4" /> Download
-                                </a>
-                              </Button>
-                            </div>
-                          </div>
-                        </DialogHeader>
-                        <div className="flex-1 bg-slate-900 overflow-hidden relative">
-                          <iframe
-                            src={activeTopic.pdfUrl}
-                            className="w-full h-full border-0"
-                            title="PDF Viewer"
-                          />
-                        </div>
-                      </DialogContent>
-                    </Dialog>
+                    {activeTopic.pdfUrl && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        onClick={() => {
+                          console.log('📄 [Theatre] Opening PDF:', activeTopic.pdfUrl);
+                          setIsPdfOpen(true);
+                        }}
+                      >
+                        <FileText className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                        {!isMobile && ' View PDF'}
+                      </Button>
+                    )}
 
                     {/* Video/Audio Toggle Button */}
                     {((language === 'hi' && activeTopic.videoUrlHindi && activeTopic.audioUrlHindi) ||
@@ -1923,15 +1949,18 @@ export function CourseView({
             </div>
           </div>
         </div>
+        </>
       );
     }
 
     // Standard Layout
     return (
-      <div className="container mx-auto p-4 md:p-6 space-y-4 md:space-y-6 h-[calc(100vh-64px)] flex flex-col relative">
-        {showXP && <XPParticles amount={xpAmount} onComplete={() => setShowXP(false)} />}
-        {/* Back Navigation */}
-        <div className="flex items-center justify-between">
+      <>
+        {pdfDialog}
+        <div className="container mx-auto p-4 md:p-6 space-y-4 md:space-y-6 h-[calc(100vh-64px)] flex flex-col relative">
+          {showXP && <XPParticles amount={xpAmount} onComplete={() => setShowXP(false)} />}
+          {/* Back Navigation */}
+          <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             {!isMobile && (
               <Button variant="ghost" size="sm" onClick={() => {
@@ -2347,35 +2376,19 @@ export function CourseView({
                 {/* Action Bar */}
                 <div className="flex flex-wrap gap-3 items-center justify-between">
                    <div className="flex gap-3">
-                     <Dialog open={isPdfOpen} onOpenChange={setIsPdfOpen}>
-                       <DialogTrigger asChild>
-                         <Button variant="outline">
-                           <FileText className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
-                           {!isMobile && ' View PDF'}
-                         </Button>
-                       </DialogTrigger>
-                       <DialogContent className="fixed inset-0 w-screen h-screen max-w-none rounded-none m-0 p-0 translate-x-0 translate-y-0 flex flex-col bg-slate-900">
-                         <DialogHeader className="px-6 py-4 border-b border-slate-700 bg-slate-800 flex-shrink-0">
-                           <div className="flex items-center justify-between">
-                             <DialogTitle className="text-white font-black text-lg">{activeTopic.title} - PDF</DialogTitle>
-                             <div className="flex gap-2">
-                               <Button variant="outline" size="sm" asChild className="bg-white text-black border-2 border-black font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                                 <a href={activeTopic.pdfUrl} download target="_blank" rel="noopener noreferrer">
-                                   <Download className="mr-2 h-4 w-4" /> Download
-                                 </a>
-                               </Button>
-                             </div>
-                           </div>
-                         </DialogHeader>
-                         <div className="flex-1 bg-slate-900 overflow-hidden relative">
-                            <iframe
-                              src={activeTopic.pdfUrl}
-                              className="w-full h-full border-0"
-                              title="PDF Viewer"
-                            />
-                         </div>
-                       </DialogContent>
-                     </Dialog>
+                     {activeTopic.pdfUrl && (
+                       <Button
+                         variant="outline"
+                         type="button"
+                         onClick={() => {
+                           console.log('📄 [Desktop] Opening PDF:', activeTopic.pdfUrl);
+                           setIsPdfOpen(true);
+                         }}
+                       >
+                         <FileText className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                         {!isMobile && ' View PDF'}
+                       </Button>
+                     )}
 
                      {/* Video/Audio Toggle Button */}
                      {((language === 'hi' && activeTopic.videoUrlHindi && activeTopic.audioUrlHindi) ||
@@ -2673,12 +2686,15 @@ export function CourseView({
           )}
         </div>
       </div>
+      </>
     );
   }
 
   // Default Grid View
   return (
-    <div className="container mx-auto p-4 md:p-6 space-y-6 md:space-y-8">
+    <>
+      {pdfDialog}
+      <div className="container mx-auto p-4 md:p-6 space-y-6 md:space-y-8">
       {/* XP Animation */}
       {showXP && <XPParticles amount={xpAmount} onComplete={() => setShowXP(false)} />}
 
@@ -2762,6 +2778,7 @@ export function CourseView({
           yearNode={yearNode}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }

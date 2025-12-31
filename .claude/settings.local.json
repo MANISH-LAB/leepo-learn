@@ -30,7 +30,9 @@
       "Bash(npx supabase:*)",
       "mcp__supabase__get_project_url",
       "mcp__supabase__list_extensions",
-      "mcp__supabase__search_docs"
+      "mcp__supabase__search_docs",
+      "Bash(npx tsc:*)",
+      "Bash(timeout 3 tail:*)"
     ],
     "deny": [],
     "ask": []
