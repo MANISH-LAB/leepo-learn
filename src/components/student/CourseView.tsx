@@ -7,6 +7,7 @@ import { awardXPForCompletion } from "../../utils/streakAndXP";
 import * as db from "../../utils/supabase/database";
 import { useIsMobile } from "../ui/use-mobile";
 import { buildCoursePath } from "../../utils/slugify";
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -414,7 +415,11 @@ export function CourseView({
   const audioRef = useRef<HTMLAudioElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const [mediaMode, setMediaMode] = useState<'video' | 'audio'>('video');
-  const [language, setLanguage] = useState<'en' | 'hi'>('en');
+  const [language, setLanguage] = useState<'en' | 'hi'>(() => {
+    // Load language preference from localStorage
+    const savedLanguage = localStorage.getItem('preferredLanguage');
+    return (savedLanguage === 'hi' || savedLanguage === 'en') ? savedLanguage : 'en';
+  });
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState([1]);
   const [isMuted, setIsMuted] = useState(false);
@@ -440,6 +445,30 @@ export function CourseView({
       setIsTheatreMode(true);
     }
   }, [activeTopic, isMobile]);
+
+  // Save language preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('preferredLanguage', language);
+    console.log('🌐 Language preference saved:', language);
+  }, [language]);
+
+  // Smart fallback when Hindi content is unavailable
+  useEffect(() => {
+    if (language === 'hi' && activeTopic) {
+      const hasHindiVideo = !!activeTopic.videoUrlHindi;
+      const hasHindiAudio = !!activeTopic.audioUrlHindi;
+
+      if (mediaMode === 'video' && !hasHindiVideo && activeTopic.videoUrl) {
+        toast.info('Hindi video not available for this topic. Playing English version.', {
+          duration: 4000,
+        });
+      } else if (mediaMode === 'audio' && !hasHindiAudio && activeTopic.audioUrl) {
+        toast.info('Hindi audio not available for this topic. Playing English version.', {
+          duration: 4000,
+        });
+      }
+    }
+  }, [language, activeTopic, mediaMode]);
 
   // Auto-expand chapter and select topic from continue learning data
   useEffect(() => {
@@ -1399,35 +1428,81 @@ export function CourseView({
           <div className={`flex-1 flex ${isMobile ? 'flex-col' : ''} overflow-hidden`}>
             <div className={`${isMobile ? 'w-full shrink-0' : 'w-[70%]'} flex flex-col ${isMobile ? '' : 'h-full overflow-y-auto bg-black/5'} scrollbar-thin`}>
                <div className={`w-full bg-black ${isMobile ? '' : 'sticky top-0'} z-10 shadow-xl aspect-video shrink-0`}>
-                 {/* Mode Toggles */}
-                 {activeTopic?.videoUrl && activeTopic?.audioUrl && (
-                       <div className="absolute top-4 right-4 z-30 flex gap-2">
-                           <Button 
-                             size="sm" 
-                             variant={mediaMode === 'video' ? 'secondary' : 'ghost'} 
-                             className={`h-8 text-xs backdrop-blur-md ${mediaMode !== 'video' ? 'bg-black/40 text-white hover:bg-black/60' : ''}`}
+                 {/* Unified Control Bar - Language & Media Mode */}
+                 <div className="absolute top-4 left-4 z-30 flex gap-2">
+                     {/* Language Toggle */}
+                     <div className="flex bg-black/60 backdrop-blur-md rounded-md p-0.5 gap-0.5 items-center border-2 border-white/20 shadow-[2px_2px_0px_0px_rgba(255,255,255,0.1)]">
+                         <Button
+                             size="sm"
+                             variant={language === 'en' ? 'secondary' : 'ghost'}
+                             className={`h-7 text-xs px-2.5 font-bold transition-all ${
+                               language === 'en'
+                                 ? 'bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                                 : 'text-white hover:bg-white/20 border-2 border-transparent'
+                             }`}
                              onClick={(e) => {
-                                 e.stopPropagation();
-                                 setIsPlaying(false);
-                                 setMediaMode('video');
+                               e.stopPropagation();
+                               setLanguage('en');
                              }}
+                         >
+                             EN
+                         </Button>
+                         <Button
+                             size="sm"
+                             variant={language === 'hi' ? 'secondary' : 'ghost'}
+                             className={`h-7 text-xs px-2.5 font-bold transition-all ${
+                               language === 'hi'
+                                 ? 'bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                                 : 'text-white hover:bg-white/20 border-2 border-transparent'
+                             }`}
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               setLanguage('hi');
+                             }}
+                         >
+                             HI
+                         </Button>
+                     </div>
+
+                     {/* Video/Audio Mode Toggle - Show only if both are available */}
+                     {((language === 'hi' && activeTopic.videoUrlHindi && activeTopic.audioUrlHindi) ||
+                       (language === 'en' && activeTopic.videoUrl && activeTopic.audioUrl)) && (
+                       <div className="flex bg-black/60 backdrop-blur-md rounded-md p-0.5 gap-0.5 items-center border-2 border-white/20 shadow-[2px_2px_0px_0px_rgba(255,255,255,0.1)]">
+                           <Button
+                               size="sm"
+                               variant={mediaMode === 'video' ? 'secondary' : 'ghost'}
+                               className={`h-7 text-xs px-2.5 font-bold transition-all ${
+                                 mediaMode === 'video'
+                                   ? 'bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                                   : 'text-white hover:bg-white/20 border-2 border-transparent'
+                               }`}
+                               onClick={(e) => {
+                                   e.stopPropagation();
+                                   setIsPlaying(false);
+                                   setMediaMode('video');
+                               }}
                            >
                                Video
                            </Button>
-                           <Button 
-                             size="sm" 
-                             variant={mediaMode === 'audio' ? 'secondary' : 'ghost'} 
-                             className={`h-8 text-xs backdrop-blur-md ${mediaMode !== 'audio' ? 'bg-black/40 text-white hover:bg-black/60' : ''}`}
-                             onClick={(e) => {
-                                 e.stopPropagation();
-                                 setIsPlaying(false);
-                                 setMediaMode('audio');
-                             }}
+                           <Button
+                               size="sm"
+                               variant={mediaMode === 'audio' ? 'secondary' : 'ghost'}
+                               className={`h-7 text-xs px-2.5 font-bold transition-all ${
+                                 mediaMode === 'audio'
+                                   ? 'bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                                   : 'text-white hover:bg-white/20 border-2 border-transparent'
+                               }`}
+                               onClick={(e) => {
+                                   e.stopPropagation();
+                                   setIsPlaying(false);
+                                   setMediaMode('audio');
+                               }}
                            >
                                Audio
                            </Button>
                        </div>
-                 )}
+                     )}
+                 </div>
 
                  {mediaMode === 'video' ? (
                    activeTopic?.videoUrl ? (
@@ -1969,54 +2044,107 @@ export function CourseView({
                   ref={playerContainerRef}
                   className="relative aspect-video bg-black rounded-xl overflow-hidden group shadow-lg"
                 >
-                   {/* Mode Toggles */}
-                   <div className="absolute top-4 right-4 z-30 flex gap-2 transition-opacity">
-                       <div className="flex bg-black/40 backdrop-blur-md rounded-md p-0.5 gap-0.5 items-center border border-white/10">
+                   {/* Unified Control Bar - Language, Media Mode, Theatre */}
+                   <div className="absolute top-4 left-4 z-30 flex gap-2">
+                       {/* Language Toggle */}
+                       <div className="flex bg-black/60 backdrop-blur-md rounded-md p-0.5 gap-0.5 items-center border-2 border-white/20 shadow-[2px_2px_0px_0px_rgba(255,255,255,0.1)]">
                            <Button
                                size="sm"
                                variant={language === 'en' ? 'secondary' : 'ghost'}
-                               className={`h-7 text-[10px] px-2 ${language !== 'en' ? 'text-white hover:bg-white/20' : 'bg-white text-black'}`}
-                               onClick={(e) => { e.stopPropagation(); setLanguage('en'); }}
+                               className={`h-7 text-xs px-3 font-bold transition-all ${
+                                 language === 'en'
+                                   ? 'bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                                   : 'text-white hover:bg-white/20 border-2 border-transparent'
+                               }`}
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 setLanguage('en');
+                               }}
                            >
                                EN
                            </Button>
                            <Button
                                size="sm"
                                variant={language === 'hi' ? 'secondary' : 'ghost'}
-                               className={`h-7 text-[10px] px-2 ${language !== 'hi' ? 'text-white hover:bg-white/20' : 'bg-white text-black'}`}
-                               onClick={(e) => { e.stopPropagation(); setLanguage('hi'); }}
+                               className={`h-7 text-xs px-3 font-bold transition-all ${
+                                 language === 'hi'
+                                   ? 'bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                                   : 'text-white hover:bg-white/20 border-2 border-transparent'
+                               }`}
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 setLanguage('hi');
+                               }}
                            >
                                HI
                            </Button>
                        </div>
+
+                       {/* Video/Audio Mode Toggle - Show only if both are available */}
+                       {((language === 'hi' && activeTopic.videoUrlHindi && activeTopic.audioUrlHindi) ||
+                         (language === 'en' && activeTopic.videoUrl && activeTopic.audioUrl)) && (
+                         <div className="flex bg-black/60 backdrop-blur-md rounded-md p-0.5 gap-0.5 items-center border-2 border-white/20 shadow-[2px_2px_0px_0px_rgba(255,255,255,0.1)]">
+                             <Button
+                                 size="sm"
+                                 variant={mediaMode === 'video' ? 'secondary' : 'ghost'}
+                                 className={`h-7 text-xs px-3 font-bold transition-all ${
+                                   mediaMode === 'video'
+                                     ? 'bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                                     : 'text-white hover:bg-white/20 border-2 border-transparent'
+                                 }`}
+                                 onClick={(e) => {
+                                     e.stopPropagation();
+                                     setIsPlaying(false);
+                                     setMediaMode('video');
+                                 }}
+                             >
+                                 Video
+                             </Button>
+                             <Button
+                                 size="sm"
+                                 variant={mediaMode === 'audio' ? 'secondary' : 'ghost'}
+                                 className={`h-7 text-xs px-3 font-bold transition-all ${
+                                   mediaMode === 'audio'
+                                     ? 'bg-white text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                                     : 'text-white hover:bg-white/20 border-2 border-transparent'
+                                 }`}
+                                 onClick={(e) => {
+                                     e.stopPropagation();
+                                     setIsPlaying(false);
+                                     setMediaMode('audio');
+                                 }}
+                             >
+                                 Audio
+                             </Button>
+                         </div>
+                       )}
+
+                       {/* Theatre Mode Button */}
+                       {!isMobile && (
+                         <Button
+                            size="sm"
+                            variant="secondary"
+                            className="h-7 px-3 font-bold backdrop-blur-md bg-white/90 text-black hover:bg-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Save current timestamp before entering theatre mode
+                              const media = mediaMode === 'video' ? videoRef.current : audioRef.current;
+                              if (media) {
+                                setSavedTimestamp(media.currentTime);
+                              }
+                              setIsTheatreMode(true);
+                            }}
+                         >
+                           <LayoutTemplate className="mr-1.5 h-3.5 w-3.5" /> Theatre
+                         </Button>
+                       )}
                    </div>
 
-                   {/* Top Right Actions - Theatre Mode */}
-                   {!isMobile && (
-                     <div className="absolute top-4 right-4 z-30 flex gap-2">
-                          <Button
-                             size="sm"
-                             variant="secondary"
-                             className="h-8 backdrop-blur-md bg-black/60 text-white hover:bg-black/80 border-0 shadow-sm"
-                             onClick={() => {
-                               // Save current timestamp before entering theatre mode
-                               const media = mediaMode === 'video' ? videoRef.current : audioRef.current;
-                               if (media) {
-                                 setSavedTimestamp(media.currentTime);
-                               }
-                               setIsTheatreMode(true);
-                             }}
-                          >
-                            <LayoutTemplate className="mr-2 h-3.5 w-3.5" /> Theatre Mode
-                          </Button>
-                     </div>
-                   )}
-
-                   {/* Left Actions - Speed & Screenshot (only for regular video, not iframe) */}
+                   {/* Right Actions - Speed & Screenshot (only for regular video, not iframe) */}
                    {!isIframeUrl(activeTopic.videoUrl) && (
-                     <div className="absolute top-4 left-4 z-30 flex gap-2 transition-opacity">
+                     <div className="absolute top-4 right-4 z-30 flex gap-2 transition-opacity">
                           <Select value={playbackRate} onValueChange={handleSpeedChange}>
-                              <SelectTrigger className="w-[70px] h-8 backdrop-blur-md bg-black/40 text-white border-0 hover:bg-black/60 focus:ring-0 focus:ring-offset-0 text-xs">
+                              <SelectTrigger className="w-[70px] h-7 backdrop-blur-md bg-black/60 text-white border-2 border-white/20 hover:bg-black/80 focus:ring-0 focus:ring-offset-0 text-xs font-bold shadow-[2px_2px_0px_0px_rgba(255,255,255,0.1)]">
                                 <SelectValue placeholder="1x" />
                               </SelectTrigger>
                               <SelectContent>
@@ -2028,7 +2156,7 @@ export function CourseView({
                               </SelectContent>
                           </Select>
 
-                          <Button variant="secondary" size="icon" onClick={captureScreenshot} className="h-8 w-8 backdrop-blur-md bg-black/40 text-white hover:bg-black/60 border-0">
+                          <Button variant="secondary" size="icon" onClick={captureScreenshot} className="h-7 w-7 backdrop-blur-md bg-black/60 text-white hover:bg-black/80 border-2 border-white/20 shadow-[2px_2px_0px_0px_rgba(255,255,255,0.1)]">
                             <Camera className="h-4 w-4" />
                           </Button>
                      </div>
