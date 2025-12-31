@@ -2024,17 +2024,46 @@ export interface UserNote {
  */
 export async function getUserNotesForTopic(userId: string, topicId: string): Promise<UserNote[]> {
   try {
-    const { data, error } = await supabase
-      .from('user_notes')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('topic_id', topicId)
-      .order('created_at', { ascending: false });
+    console.log('📖 Fetching user notes via direct API...');
 
-    if (error && error.code !== 'PGRST116') throw error;
-    return data || [];
+    // Get auth token from localStorage
+    const supabaseAuthKey = `sb-${supabase.supabaseUrl?.split('//')[1]?.split('.')[0]}-auth-token`;
+    const storedSession = localStorage.getItem(supabaseAuthKey);
+    let accessToken: string | undefined;
+
+    if (storedSession) {
+      try {
+        const sessionData = JSON.parse(storedSession);
+        accessToken = sessionData?.access_token;
+      } catch (e) {
+        console.warn('⚠️ Failed to parse session');
+      }
+    }
+
+    const url = `${supabase.supabaseUrl}/rest/v1/user_notes?user_id=eq.${userId}&topic_id=eq.${topicId}&order=created_at.desc`;
+    const headers: Record<string, string> = {
+      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+      'Content-Type': 'application/json',
+    };
+
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const response = await fetch(url, { headers });
+    console.log('📡 Notes fetch response status:', response.status);
+
+    if (!response.ok) {
+      console.error('❌ HTTP error:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    console.log('✅ Fetched notes:', data?.length || 0, 'notes');
+
+    return Array.isArray(data) ? data : [];
   } catch (error) {
-    console.error('Error fetching user notes:', error);
+    console.error('💥 Error fetching user notes:', error);
     return [];
   }
 }
@@ -2118,20 +2147,55 @@ export async function updateUserNote(
   mediaTimestamp?: number
 ): Promise<boolean> {
   try {
+    console.log('✏️ Updating user note via direct API...');
+
+    // Get auth token from localStorage
+    const supabaseAuthKey = `sb-${supabase.supabaseUrl?.split('//')[1]?.split('.')[0]}-auth-token`;
+    const storedSession = localStorage.getItem(supabaseAuthKey);
+    let accessToken: string | undefined;
+
+    if (storedSession) {
+      try {
+        const sessionData = JSON.parse(storedSession);
+        accessToken = sessionData?.access_token;
+      } catch (e) {
+        console.warn('⚠️ Failed to parse session');
+      }
+    }
+
     const updateData: any = { content };
     if (mediaTimestamp !== undefined) {
       updateData.media_timestamp = mediaTimestamp;
     }
 
-    const { error } = await supabase
-      .from('user_notes')
-      .update(updateData)
-      .eq('id', noteId);
+    const url = `${supabase.supabaseUrl}/rest/v1/user_notes?id=eq.${noteId}`;
+    const headers: Record<string, string> = {
+      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+      'Content-Type': 'application/json',
+    };
 
-    if (error) throw error;
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(updateData),
+    });
+
+    console.log('📡 Note update response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ HTTP error:', response.status, errorText);
+      return false;
+    }
+
+    console.log('✅ Note updated successfully');
     return true;
   } catch (error) {
-    console.error('Error updating user note:', error);
+    console.error('💥 Error updating user note:', error);
     return false;
   }
 }
@@ -2141,15 +2205,49 @@ export async function updateUserNote(
  */
 export async function deleteUserNote(noteId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('user_notes')
-      .delete()
-      .eq('id', noteId);
+    console.log('🗑️ Deleting user note via direct API...');
 
-    if (error) throw error;
+    // Get auth token from localStorage
+    const supabaseAuthKey = `sb-${supabase.supabaseUrl?.split('//')[1]?.split('.')[0]}-auth-token`;
+    const storedSession = localStorage.getItem(supabaseAuthKey);
+    let accessToken: string | undefined;
+
+    if (storedSession) {
+      try {
+        const sessionData = JSON.parse(storedSession);
+        accessToken = sessionData?.access_token;
+      } catch (e) {
+        console.warn('⚠️ Failed to parse session');
+      }
+    }
+
+    const url = `${supabase.supabaseUrl}/rest/v1/user_notes?id=eq.${noteId}`;
+    const headers: Record<string, string> = {
+      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+      'Content-Type': 'application/json',
+    };
+
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers,
+    });
+
+    console.log('📡 Note delete response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ HTTP error:', response.status, errorText);
+      return false;
+    }
+
+    console.log('✅ Note deleted successfully');
     return true;
   } catch (error) {
-    console.error('Error deleting user note:', error);
+    console.error('💥 Error deleting user note:', error);
     return false;
   }
 }
@@ -2159,16 +2257,46 @@ export async function deleteUserNote(noteId: string): Promise<boolean> {
  */
 export async function getAllUserNotes(userId: string): Promise<UserNote[]> {
   try {
-    const { data, error } = await supabase
-      .from('user_notes')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    console.log('📚 Fetching all user notes via direct API...');
 
-    if (error && error.code !== 'PGRST116') throw error;
-    return data || [];
+    // Get auth token from localStorage
+    const supabaseAuthKey = `sb-${supabase.supabaseUrl?.split('//')[1]?.split('.')[0]}-auth-token`;
+    const storedSession = localStorage.getItem(supabaseAuthKey);
+    let accessToken: string | undefined;
+
+    if (storedSession) {
+      try {
+        const sessionData = JSON.parse(storedSession);
+        accessToken = sessionData?.access_token;
+      } catch (e) {
+        console.warn('⚠️ Failed to parse session');
+      }
+    }
+
+    const url = `${supabase.supabaseUrl}/rest/v1/user_notes?user_id=eq.${userId}&order=created_at.desc`;
+    const headers: Record<string, string> = {
+      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+      'Content-Type': 'application/json',
+    };
+
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const response = await fetch(url, { headers });
+    console.log('📡 All notes fetch response status:', response.status);
+
+    if (!response.ok) {
+      console.error('❌ HTTP error:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    console.log('✅ Fetched all notes:', data?.length || 0, 'notes');
+
+    return Array.isArray(data) ? data : [];
   } catch (error) {
-    console.error('Error fetching all user notes:', error);
+    console.error('💥 Error fetching all user notes:', error);
     return [];
   }
 }
