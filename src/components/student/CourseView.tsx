@@ -1578,18 +1578,6 @@ export function CourseView({
                             }}
                           />
 
-                          {/* Interactive Playground Overlay - Only on iframe */}
-                          {activeTopic.interactiveContent && (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => setIsInteractiveMode(true)}
-                              className={`absolute top-4 left-4 z-30 backdrop-blur-md bg-black/40 text-blue-400 hover:bg-black/60 hover:text-blue-300 border-0 h-8 transition-opacity ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                            >
-                              <Gamepad2 className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
-                              {!isMobile && ' Practice'}
-                            </Button>
-                          )}
                         </div>
                       ) : (
                         <video
@@ -1809,6 +1797,19 @@ export function CourseView({
                       >
                         <FileText className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
                         {!isMobile && ' View PDF'}
+                      </Button>
+                    )}
+
+                    {/* Interactive Playground Button */}
+                    {activeTopic.interactiveContent && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        onClick={() => setIsInteractiveMode(true)}
+                      >
+                        <Gamepad2 className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                        {!isMobile && ' Practice'}
                       </Button>
                     )}
 
@@ -2236,18 +2237,6 @@ export function CourseView({
                                  }}
                                />
 
-                               {/* Interactive Playground Overlay - Only on iframe */}
-                               {activeTopic.interactiveContent && (
-                                 <Button
-                                   variant="secondary"
-                                   size="sm"
-                                   onClick={() => setIsInteractiveMode(true)}
-                                   className={`absolute top-4 left-4 z-30 backdrop-blur-md bg-black/40 text-blue-400 hover:bg-black/60 hover:text-blue-300 border-0 h-8 transition-opacity ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                                 >
-                                   <Gamepad2 className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
-                                   {!isMobile && ' Practice'}
-                                 </Button>
-                               )}
                              </div>
                            ) : (
                              <video
@@ -2387,6 +2376,18 @@ export function CourseView({
                        >
                          <FileText className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
                          {!isMobile && ' View PDF'}
+                       </Button>
+                     )}
+
+                     {/* Interactive Playground Button */}
+                     {activeTopic.interactiveContent && (
+                       <Button
+                         variant="outline"
+                         type="button"
+                         onClick={() => setIsInteractiveMode(true)}
+                       >
+                         <Gamepad2 className={`${isMobile ? '' : 'mr-2'} h-4 w-4`} />
+                         {!isMobile && ' Practice'}
                        </Button>
                      )}
 
