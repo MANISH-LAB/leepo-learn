@@ -1785,6 +1785,28 @@ export function CourseView({
 
                   {/* Action Buttons - Visible in theatre mode */}
                   <div className="flex flex-wrap gap-2 shrink-0">
+                    {/* Language Toggle - Mobile friendly */}
+                    {isMobile && (
+                      <div className="flex rounded-md border-2 border-border overflow-hidden">
+                        <Button
+                          variant={language === 'en' ? 'secondary' : 'outline'}
+                          size="sm"
+                          className={`rounded-none border-0 ${language === 'en' ? 'bg-primary text-primary-foreground' : ''}`}
+                          onClick={() => setLanguage('en')}
+                        >
+                          EN
+                        </Button>
+                        <Button
+                          variant={language === 'hi' ? 'secondary' : 'outline'}
+                          size="sm"
+                          className={`rounded-none border-0 border-l-2 ${language === 'hi' ? 'bg-primary text-primary-foreground' : ''}`}
+                          onClick={() => setLanguage('hi')}
+                        >
+                          HI
+                        </Button>
+                      </div>
+                    )}
+
                     {activeTopic.pdfUrl && (
                       <Button
                         variant="outline"
