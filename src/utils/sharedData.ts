@@ -15,6 +15,7 @@ export interface Node {
   audioUrl?: string;
   audioUrlHindi?: string;
   pdfUrl?: string;
+  reportPdfUrl?: string;
   isPremium?: boolean;
   isActive?: boolean; // Controls visibility to students
   interactiveContent?: string;

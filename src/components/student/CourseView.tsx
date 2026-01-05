@@ -1468,7 +1468,7 @@ export function CourseView({
 
           <div className={`flex-1 flex ${isMobile ? 'flex-col' : ''} overflow-hidden`}>
             <div className={`${isMobile ? 'w-full shrink-0' : 'w-[70%]'} flex flex-col ${isMobile ? '' : 'h-full overflow-y-auto bg-black/5'} scrollbar-thin`}>
-               <div className={`w-full bg-black ${isMobile ? '' : 'sticky top-0'} z-10 shadow-xl aspect-video shrink-0`}>
+               <div className={`w-full bg-black ${isMobile ? 'max-h-[60vh]' : 'sticky top-0'} z-10 shadow-xl aspect-video shrink-0`}>
                  {/* Unified Control Bar - Language & Media Mode */}
                  <div className="absolute top-4 left-4 z-30 flex gap-2">
                      {/* Language Toggle */}

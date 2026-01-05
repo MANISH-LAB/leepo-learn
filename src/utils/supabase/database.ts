@@ -164,7 +164,7 @@ export async function fetchCompleteHierarchy(): Promise<Node[]> {
 
       supabase
         .from('content_assets')
-        .select('node_id, video_url, video_url_hindi, audio_url, audio_url_hindi, pdf_url, duration, is_premium, interactive_content'),
+        .select('node_id, video_url, video_url_hindi, audio_url, audio_url_hindi, pdf_url, report_pdf_url, duration, is_premium, interactive_content'),
 
       supabase
         .from('chapter_assessments')
@@ -508,7 +508,7 @@ export async function fetchTopicsForChapter(chapterId: string): Promise<Node[]> 
         { headers }
       ),
       fetch(
-        `${supabase.supabaseUrl}/rest/v1/content_assets?select=node_id,video_url,video_url_hindi,audio_url,audio_url_hindi,pdf_url,duration,is_premium,interactive_content`,
+        `${supabase.supabaseUrl}/rest/v1/content_assets?select=node_id,video_url,video_url_hindi,audio_url,audio_url_hindi,pdf_url,report_pdf_url,duration,is_premium,interactive_content`,
         { headers }
       ).catch(() => null)
     ]);
@@ -951,6 +951,7 @@ export async function upsertContentAssets(nodeId: string, content: {
   audioUrl?: string;
   audioUrlHindi?: string;
   pdfUrl?: string;
+  reportPdfUrl?: string;
   duration?: string;
   isPremium?: boolean;
   interactiveContent?: string;
@@ -971,6 +972,7 @@ export async function upsertContentAssets(nodeId: string, content: {
       audio_url: content.audioUrl || null,
       audio_url_hindi: content.audioUrlHindi || null,
       pdf_url: content.pdfUrl || null,
+      report_pdf_url: content.reportPdfUrl || null,
       duration: content.duration || null,
       is_premium: content.isPremium ?? false,
       interactive_content: content.interactiveContent || null,

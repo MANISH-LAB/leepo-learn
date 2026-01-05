@@ -206,7 +206,7 @@ export default function App() {
 
               navigate('/courses', { replace: true });
             } else if (profile) {
-              // Profile incomplete
+              // Profile incomplete - user is logged in but needs to complete profile
               setUser({
                 id: profile.id,
                 email: profile.email || email,
@@ -215,9 +215,10 @@ export default function App() {
                 name: userMetadata.full_name || userMetadata.name,
               });
               setNeedsOnboarding(true);
+              setEnrollmentStep(2); // Set step to 2 (Complete Profile) since user is already authenticated
               setIsEnrollOpen(true);
             } else {
-              // No profile - create new
+              // No profile - create new (user is authenticated via OAuth but no profile exists)
               setUser({
                 id: userId,
                 email: email,
@@ -225,6 +226,7 @@ export default function App() {
                 name: userMetadata.full_name || userMetadata.name,
               });
               setNeedsOnboarding(true);
+              setEnrollmentStep(2); // Set step to 2 (Complete Profile) since user is already authenticated
               setIsEnrollOpen(true);
             }
           } catch (err) {
@@ -344,6 +346,7 @@ export default function App() {
             name: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
           });
           setNeedsOnboarding(true);
+          setEnrollmentStep(2); // Set step to 2 (Complete Profile) since user is already authenticated
           setIsEnrollOpen(true);
         } else {
           // No profile found - create minimal user and show onboarding
@@ -354,6 +357,7 @@ export default function App() {
             name: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
           });
           setNeedsOnboarding(true);
+          setEnrollmentStep(2); // Set step to 2 (Complete Profile) since user is already authenticated
           setIsEnrollOpen(true);
         }
       }
@@ -415,25 +419,33 @@ export default function App() {
           }
         } else if (profile) {
           // Profile exists but incomplete - needs onboarding
-          setUser({
-            id: profile.id,
-            email: profile.email || session.user.email,
-            avatar: profile.avatar_url || session.user.user_metadata?.avatar_url,
-            role: profile.role,
-            name: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
-          });
-          setNeedsOnboarding(true);
-          setIsEnrollOpen(true);
+          // Only open modal if not already open (prevent re-triggering from auth events)
+          if (!isEnrollOpen) {
+            setUser({
+              id: profile.id,
+              email: profile.email || session.user.email,
+              avatar: profile.avatar_url || session.user.user_metadata?.avatar_url,
+              role: profile.role,
+              name: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
+            });
+            setNeedsOnboarding(true);
+            setEnrollmentStep(2); // Set step to 2 (Complete Profile) since user is already authenticated
+            setIsEnrollOpen(true);
+          }
         } else {
           // No profile - create minimal user and show onboarding
-          setUser({
-            id: session.user.id,
-            email: session.user.email,
-            avatar: session.user.user_metadata?.avatar_url,
-            name: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
-          });
-          setNeedsOnboarding(true);
-          setIsEnrollOpen(true);
+          // Only open modal if not already open (prevent re-triggering from auth events)
+          if (!isEnrollOpen) {
+            setUser({
+              id: session.user.id,
+              email: session.user.email,
+              avatar: session.user.user_metadata?.avatar_url,
+              name: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
+            });
+            setNeedsOnboarding(true);
+            setEnrollmentStep(2); // Set step to 2 (Complete Profile) since user is already authenticated
+            setIsEnrollOpen(true);
+          }
         }
       } else if (event === 'TOKEN_REFRESHED') {
         // Token was refreshed - session is still valid, just log it

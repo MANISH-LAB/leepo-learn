@@ -156,6 +156,7 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
               audioUrl: assets.audio_url,
               audioUrlHindi: assets.audio_url_hindi,
               pdfUrl: assets.pdf_url,
+              reportPdfUrl: assets.report_pdf_url,
               duration: assets.duration,
               isPremium: assets.is_premium,
               interactiveContent: assets.interactive_content,
@@ -254,6 +255,7 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
           audioUrl: selectedNode.audioUrl,
           audioUrlHindi: selectedNode.audioUrlHindi,
           pdfUrl: selectedNode.pdfUrl,
+          reportPdfUrl: selectedNode.reportPdfUrl,
           duration: selectedNode.duration,
           isPremium: selectedNode.isPremium,
           interactiveContent: selectedNode.interactiveContent,
@@ -853,6 +855,20 @@ export function CourseManagerTab({ courseData, setCourseData }: CourseManagerTab
                         setSelectedNode({
                           ...selectedNode,
                           pdfUrl: e.target.value,
+                        })
+                      }
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="reportPdf">Report PDF URL</Label>
+                    <Input
+                      id="reportPdf"
+                      value={selectedNode.reportPdfUrl || ""}
+                      onChange={(e) =>
+                        setSelectedNode({
+                          ...selectedNode,
+                          reportPdfUrl: e.target.value,
                         })
                       }
                       placeholder="https://..."
